@@ -158,6 +158,25 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
 .fb-code{margin-top:12px;padding:11px;background:var(--surface);border-radius:8px;font-family:var(--mono);font-size:11px;line-height:1.8;color:var(--muted);}
 .fb-li{margin-bottom:7px;font-size:13px;line-height:1.6;color:var(--muted);}
 .fb-li strong{color:var(--text);}
+
+/* ── IMPORT CSV ── */
+.import-csv-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.import-csv-box p{font-size:13px;color:var(--muted);flex:1;min-width:160px;}
+.import-csv-label{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;background:var(--surface);color:var(--text);border:1px solid var(--border);transition:all .15s;}
+.import-csv-label:hover{border-color:var(--muted);}
+#csv-file-input{display:none;}
+.import-result{font-size:12.5px;padding:8px 14px;border-radius:8px;margin-top:0;font-weight:600;}
+.import-result.ok{background:#F0FDF4;color:#15803D;border:1px solid #BBF7D0;}
+.import-result.err{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;}
+/* ── PDF DROP ── */
+.pdf-drop{border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;transition:all .2s;cursor:pointer;position:relative;}
+.pdf-drop:hover,.pdf-drop.dragover{border-color:var(--text);background:var(--surface);}
+.pdf-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.pdf-drop-icon{font-size:28px;margin-bottom:6px;}
+.pdf-drop h3{font-size:14px;font-weight:700;margin-bottom:4px;}
+.pdf-drop p{font-size:12.5px;color:var(--muted);}
+.pdf-status{font-size:13px;font-weight:600;padding:10px 14px;border-radius:8px;margin-top:10px;display:none;}
+
 @media(max-width:900px){.board{grid-template-columns:repeat(2,minmax(240px,1fr));}}
 @media(max-width:520px){.board{grid-template-columns:minmax(250px,1fr);}main{padding:14px;}header{padding:0 14px;}.tab{padding:5px 8px;font-size:11px;}}
 </style>
@@ -195,6 +214,10 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
     </div>
     <div class="toolbar-right">
       <input class="sinput" type="text" id="searchInput" placeholder="🔍 Buscar…" oninput="render()">
+      <label class="import-csv-label" title="Importar CSV exportado anteriormente">
+        📂 Importar CSV
+        <input type="file" id="csv-file-input" accept=".csv" onchange="importCSV(event)">
+      </label>
     </div>
   </div>
   <div class="chips" id="chips"></div>
@@ -247,11 +270,32 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
     <h2 style="font-size:19px;font-weight:800;letter-spacing:-.4px;margin-bottom:3px;">📦 Estoque da Congregação</h2>
     <p style="font-size:13px;color:var(--muted);">Importe o relatório do JW Hub para visualizar o inventário atual</p>
   </div>
-  <div class="import-box">
+  <!-- Tabs de importação -->
+  <div style="display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;width:fit-content;margin-bottom:16px;">
+    <button class="tab active" id="est-tab-pdf" onclick="switchEstTab('pdf',this)" style="font-size:12.5px;">📄 Upload PDF</button>
+    <button class="tab" id="est-tab-txt" onclick="switchEstTab('txt',this)" style="font-size:12.5px;">📋 Colar Texto</button>
+  </div>
+
+  <!-- PDF drop zone -->
+  <div id="est-pane-pdf" class="import-box" style="padding:0;">
+    <div class="pdf-drop" id="pdfDrop"
+      ondragover="event.preventDefault();this.classList.add('dragover')"
+      ondragleave="this.classList.remove('dragover')"
+      ondrop="onPdfDrop(event)">
+      <input type="file" accept="application/pdf" onchange="onPdfFile(event)">
+      <div class="pdf-drop-icon">📄</div>
+      <h3>Arraste o PDF aqui ou clique para selecionar</h3>
+      <p>Relatório de inventário baixado do JW Hub (.pdf)</p>
+    </div>
+    <div id="pdf-status" class="pdf-status"></div>
+  </div>
+
+  <!-- Texto pane -->
+  <div id="est-pane-txt" class="import-box" style="display:none;">
     <div style="font-size:28px;margin-bottom:6px;">📋</div>
-    <h3>Importar Relatório do JW Hub</h3>
+    <h3>Colar texto do JW Hub</h3>
     <p>Abra o relatório no JW Hub, selecione tudo (Ctrl+A), copie (Ctrl+C) e cole abaixo</p>
-    <textarea id="importText" placeholder="Cole aqui o texto do relatório…&#10;&#10;Bíblias&#10;(nwt) Tradução do Novo Mundo  6&#10;(nwtls) TNM (revisada – grande)  6&#10;&#10;Livros&#10;(lff) Seja Feliz para Sempre! (livro)  12&#10;…"></textarea>
+    <textarea id="importText" placeholder="Cole aqui o texto do relatório…&#10;&#10;Bíblias&#10;(nwt) Tradução do Novo Mundo  6&#10;…" style="width:100%;min-height:110px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--font);font-size:13px;color:var(--text);resize:vertical;outline:none;margin-top:12px;"></textarea>
     <div style="margin-top:11px;display:flex;gap:8px;justify-content:center;">
       <button class="btn btn-dark" onclick="importarEstoque()">📥 Importar</button>
       <button class="btn btn-ghost" onclick="document.getElementById('importText').value=''">Limpar</button>
@@ -618,8 +662,223 @@ function showCfgStatus(type,msg){
   el.style.border=type==='ok'?'1px solid #BBF7D0':'1px solid #FECACA';
   el.textContent=msg;
 }
+
+// ── IMPORT CSV → KANBAN ───────────────────────────────────────────────────────
+function importCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const text = e.target.result;
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) { alert('CSV inválido ou vazio.'); return; }
+    
+    // Detect separator
+    const sep = lines[0].includes(';') ? ';' : ',';
+    const parseRow = row => {
+      const cols = []; let cur = '', inQ = false;
+      for (let i = 0; i < row.length; i++) {
+        const ch = row[i];
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === sep && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+      }
+      cols.push(cur.trim());
+      return cols.map(v => v.replace(/^"|"$/g,'').trim());
+    };
+
+    const header = parseRow(lines[0]).map(h => h.toLowerCase().replace(/[^a-záéíóúãõçà]/gi,''));
+    // Map header → index
+    const idx = (names) => { for (const n of names) { const i = header.findIndex(h => h.includes(n)); if (i>=0) return i; } return -1; };
+    const iNome = idx(['nome','name','solicit']);
+    const iPubli = idx(['publi','publica','livro','titulo']);
+    const iQtd = idx(['qtd','quant','qty','amount']);
+    const iMes = idx(['mes','m','month']);
+    const iData = idx(['data','date','pedido']);
+    const iEtapa = idx(['etapa','stage','status','step']);
+    const iObs = idx(['obs','note','coment','remark']);
+
+    if (iNome < 0 || iPubli < 0) {
+      alert('Não encontrei as colunas "Nome" e "Publicação" no CSV. Verifique o arquivo.');
+      event.target.value = '';
+      return;
+    }
+
+    const ETAPA_MAP = {
+      'solicitado':0,'pedido':1,'enviado':1,'pedido / enviado':1,'chegou':2,'entregue':3,
+      '0':0,'1':1,'2':2,'3':3
+    };
+    const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+    const newRecords = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseRow(lines[i]);
+      if (cols.length < 2) continue;
+      const nome = cols[iNome] || '';
+      const publicacao = cols[iPubli] || '';
+      if (!nome || !publicacao) continue;
+
+      const etapaRaw = (iEtapa >= 0 ? cols[iEtapa] : '').toLowerCase().trim();
+      const etapa = ETAPA_MAP[etapaRaw] ?? 0;
+      const mesRaw = iMes >= 0 ? cols[iMes] : '';
+      const mesNorm = MESES.find(m => m.toLowerCase() === mesRaw.toLowerCase()) || mesRaw || MESES[new Date().getMonth()];
+
+      newRecords.push({
+        id: nid(),
+        nome, publicacao,
+        qtd: parseInt(iQtd >= 0 ? cols[iQtd] : '1') || 1,
+        mes: mesNorm,
+        data: iData >= 0 ? cols[iData] : '',
+        etapa,
+        obs: iObs >= 0 ? cols[iObs] : '',
+        criadoEm: Date.now() + i
+      });
+    }
+
+    if (!newRecords.length) { alert('Nenhum registro encontrado no CSV.'); event.target.value = ''; return; }
+
+    const action = confirm(
+      `Encontrei ${newRecords.length} pedido(s) no CSV.\n\nEscolha:\n• OK = Adicionar aos pedidos existentes\n• Cancelar = Substituir tudo`
+    );
+
+    if (useFirebase) {
+      const { addDoc, collection: col } = FB;
+      for (const r of newRecords) {
+        const { id, ...data } = r;
+        await FB.addDoc(FB.collection(db, 'pedidos'), data);
+      }
+    } else {
+      if (action) {
+        records = [...records, ...newRecords];
+      } else {
+        if (!confirm('Tem certeza? Os pedidos atuais serão apagados.')) { event.target.value=''; return; }
+        records = newRecords;
+      }
+      save(); render();
+    }
+
+    event.target.value = '';
+    showImportResult(`✅ ${newRecords.length} pedidos importados com sucesso!`, 'ok');
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function showImportResult(msg, type) {
+  // Show a temporary toast
+  const toast = document.createElement('div');
+  toast.textContent = msg;
+  toast.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 18px;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.15);transition:opacity .3s;background:${type==='ok'?'#15803D':'#DC2626'};color:#fff;`;
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.opacity='0'; setTimeout(()=>toast.remove(), 300); }, 3500);
+}
+
+// ── ESTOQUE TABS ──────────────────────────────────────────────────────────────
+function switchEstTab(tab, btn) {
+  document.querySelectorAll('#page-estoque .tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('est-pane-pdf').style.display = tab === 'pdf' ? 'block' : 'none';
+  document.getElementById('est-pane-txt').style.display = tab === 'txt' ? 'block' : 'none';
+}
+
+// ── PDF ESTOQUE ───────────────────────────────────────────────────────────────
+function onPdfDrop(e) {
+  e.preventDefault();
+  document.getElementById('pdfDrop').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') processPdf(file);
+  else setPdfStatus('error', '❌ Arquivo não reconhecido. Use um PDF do JW Hub.');
+}
+function onPdfFile(e) {
+  const file = e.target.files[0];
+  if (file) processPdf(file);
+}
+
+async function processPdf(file) {
+  setPdfStatus('loading', '⏳ Lendo o PDF…');
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const text = await extractPdfText(arrayBuffer);
+    if (!text || text.length < 30) { setPdfStatus('error', '❌ Não consegui ler o texto do PDF. Tente a aba "Colar Texto".'); return; }
+    setPdfStatus('ok', '✅ PDF lido! Processando inventário…');
+    const {cats, ref} = parseEstoqueText(text);
+    if (!cats.length) { setPdfStatus('error', '❌ Não encontrei itens de estoque. Use a aba "Colar Texto" e cole o conteúdo da página.'); return; }
+    localStorage.setItem('bj_estoque', JSON.stringify({ref, cats}));
+    renderEstoque(cats, ref);
+    setPdfStatus('ok', `✅ Importado: ${cats.length} categorias, ${cats.reduce((s,c)=>s+c.items.length,0)} tipos de publicação.`);
+  } catch(err) {
+    setPdfStatus('error', '❌ Erro ao processar PDF: ' + err.message);
+  }
+}
+
+function setPdfStatus(type, msg) {
+  const el = document.getElementById('pdf-status');
+  el.style.display = 'block';
+  el.style.background = type === 'ok' ? '#F0FDF4' : type === 'loading' ? '#FEF9C3' : '#FEF2F2';
+  el.style.color = type === 'ok' ? '#15803D' : type === 'loading' ? '#92400E' : '#DC2626';
+  el.style.border = type === 'ok' ? '1px solid #BBF7D0' : type === 'loading' ? '1px solid #FDE68A' : '1px solid #FECACA';
+  el.textContent = msg;
+}
+
+// PDF text extraction using PDF.js from CDN
+async function extractPdfText(arrayBuffer) {
+  // Load PDF.js dynamically if not already loaded
+  if (!window.pdfjsLib) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    // Sort items by Y then X for correct reading order
+    const items = content.items.sort((a, b) => {
+      const dy = Math.round(b.transform[5]) - Math.round(a.transform[5]);
+      return dy !== 0 ? dy : a.transform[4] - b.transform[4];
+    });
+    // Group items by Y position (same line)
+    let lastY = null, lineText = '';
+    for (const item of items) {
+      const y = Math.round(item.transform[5]);
+      if (lastY !== null && Math.abs(y - lastY) > 3) {
+        fullText += lineText.trimEnd() + '\n';
+        lineText = '';
+      }
+      lineText += item.str + (item.hasEOL ? '\n' : ' ');
+      lastY = y;
+    }
+    if (lineText.trim()) fullText += lineText + '\n';
+    fullText += '\n';
+  }
+  return fullText;
+}
+
+function parseEstoqueText(text) {
+  const cats = []; let cur = null;
+  const ref = (text.match(/([A-Za-zçÇãÃõÕêÊ]+\s+de\s+\d{4})/i) || [])[1] || '';
+  const catKw = ['Bíblias','Livros','Brochuras','Livretos','Formulários','Folhetos','Revistas'];
+  for (const line of text.split('\n')) {
+    const t = line.trim(); if (!t) continue;
+    const isCat = catKw.some(k => t.toLowerCase().startsWith(k.toLowerCase()));
+    if (isCat && !t.match(/\d+\s*$/)) { cur = {name:t, items:[]}; cats.push(cur); continue; }
+    const m = t.match(/^(\([^)]+\)\s+)?(.+?)\s{2,}(\d+)\s*$/) || t.match(/^(.+?)\s+(\d+)\s*$/);
+    if (m && cur) {
+      if (m.length === 4) cur.items.push({code:(m[1]||'').trim(), name:m[2].trim(), qty:+m[3]});
+      else cur.items.push({code:'', name:m[1].trim(), qty:+m[2]});
+    }
+  }
+  return {cats: cats.filter(c => c.items.length > 0), ref};
+}
+
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){closeModal();document.getElementById('fbOverlay').classList.remove('open');}
+  if(e.key==='Escape'){closeModal();closeConfig();}
   if(e.key==='n'&&!e.target.matches('input,textarea,select'))openModal();
 });
 </script>
