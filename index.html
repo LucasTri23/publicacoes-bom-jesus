@@ -8,20 +8,27 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-  const firebaseConfig = {
-    apiKey: "COLE_API_KEY", authDomain: "COLE_AUTH_DOMAIN",
-    projectId: "COLE_PROJECT_ID", storageBucket: "COLE_STORAGE_BUCKET",
-    messagingSenderId: "COLE_SENDER_ID", appId: "COLE_APP_ID"
-  };
-  try {
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    if (!firebaseConfig.apiKey.includes('COLE')) {
+
+  // Carrega config salva pelo usuário no app
+  let cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem('bj_fbconfig') || '{}'); } catch {}
+
+  const hasConfig = cfg.apiKey && cfg.projectId;
+
+  if (hasConfig) {
+    try {
+      const app = initializeApp(cfg);
+      const db = getFirestore(app);
       window._db = db;
       window._FB = { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy };
       window.dispatchEvent(new CustomEvent('fb-ready'));
-    } else { window.dispatchEvent(new CustomEvent('fb-demo')); }
-  } catch { window.dispatchEvent(new CustomEvent('fb-demo')); }
+    } catch(e) {
+      window._fbError = e.message;
+      window.dispatchEvent(new CustomEvent('fb-error'));
+    }
+  } else {
+    window.dispatchEvent(new CustomEvent('fb-demo'));
+  }
 </script>
 <style>
 :root {
@@ -158,8 +165,8 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
 <body>
 
 <div id="banner">
-  ⚠️ <strong>Modo local</strong> — dados salvos só neste navegador.
-  <a onclick="showFBHelp()">Ativar Firebase para compartilhar com seu parceiro →</a>
+  <span id="banner-msg">⚠️ <strong>Modo local</strong> — dados salvos só neste navegador.</span>
+  <a id="banner-link" onclick="openConfig()">⚙️ Configurar Firebase →</a>
 </div>
 
 <header>
@@ -282,29 +289,52 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
   </div>
 </div>
 
-<!-- MODAL FIREBASE HELP -->
-<div class="overlay" id="fbOverlay" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal" style="max-width:540px;" onclick="event.stopPropagation()">
-    <h2>🔥 Ativar Firebase (sincronização em tempo real)</h2>
-    <ol style="padding-left:18px;margin-top:6px;">
-      <li class="fb-li">Acesse <strong>console.firebase.google.com</strong> e crie um projeto gratuito</li>
-      <li class="fb-li">Clique em <strong>"Adicionar app" → Web</strong> e registre o app</li>
-      <li class="fb-li">Copie o objeto <strong>firebaseConfig</strong> que aparecer</li>
-      <li class="fb-li">Abra o <strong>index.html</strong>, localize o bloco <code>firebaseConfig</code> no topo e substitua os campos <code>COLE_…</code></li>
-      <li class="fb-li">No console: <strong>Firestore Database → Criar banco → Modo de teste</strong></li>
-      <li class="fb-li">Hospede no <strong>GitHub Pages</strong> (repo público → Settings → Pages → Branch main)</li>
-      <li class="fb-li">Compartilhe o link com seu parceiro — dados em tempo real! ✅</li>
-    </ol>
-    <div class="fb-code">
-      // Regras temporárias do Firestore (30 dias):<br>
-      rules_version = '2';<br>
-      service cloud.firestore {<br>
-      &nbsp;&nbsp;match /databases/{db}/documents/{doc=**} {<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if true;<br>
-      &nbsp;&nbsp;}<br>
-      }
+<!-- MODAL CONFIGURAÇÃO FIREBASE -->
+<div class="overlay" id="configOverlay" onclick="if(event.target===this)closeConfig()">
+  <div class="modal" style="max-width:560px;" onclick="event.stopPropagation()">
+    <h2>⚙️ Configuração do Firebase</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">
+      Cole abaixo as credenciais do seu projeto Firebase. Elas ficam salvas <strong>apenas neste navegador</strong> e nunca são enviadas para nenhum servidor externo.
+    </p>
+
+    <div id="cfg-status" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;"></div>
+
+    <div class="fgrid">
+      <div class="fg full"><label>API Key</label><input type="text" id="cfg-apiKey" placeholder="AIzaSy…" autocomplete="off"></div>
+      <div class="fg full"><label>Auth Domain</label><input type="text" id="cfg-authDomain" placeholder="meu-projeto.firebaseapp.com"></div>
+      <div class="fg full"><label>Project ID</label><input type="text" id="cfg-projectId" placeholder="meu-projeto"></div>
+      <div class="fg full"><label>Storage Bucket</label><input type="text" id="cfg-storageBucket" placeholder="meu-projeto.appspot.com"></div>
+      <div class="fg"><label>Messaging Sender ID</label><input type="text" id="cfg-messagingSenderId" placeholder="123456789"></div>
+      <div class="fg"><label>App ID</label><input type="text" id="cfg-appId" placeholder="1:123…:web:abc…"></div>
     </div>
-    <div class="mactions"><button class="btn btn-dark" onclick="document.getElementById('fbOverlay').classList.remove('open')">Entendi</button></div>
+
+    <details style="margin-top:16px;">
+      <summary style="font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;padding:6px 0;">
+        📖 Como obter essas credenciais?
+      </summary>
+      <ol style="padding-left:18px;margin-top:10px;">
+        <li class="fb-li">Acesse <strong>console.firebase.google.com</strong> e crie um projeto gratuito</li>
+        <li class="fb-li">Clique em <strong>"Adicionar app" → Web</strong> e registre o app</li>
+        <li class="fb-li">Copie cada valor do objeto <strong>firebaseConfig</strong> e cole nos campos acima</li>
+        <li class="fb-li">No console Firebase: <strong>Firestore Database → Criar banco → Modo de teste</strong></li>
+        <li class="fb-li">Hospede no <strong>GitHub Pages</strong> e compartilhe o link com seu parceiro ✅</li>
+      </ol>
+      <div class="fb-code" style="margin-top:10px;">
+        // Regras do Firestore (cole no console, aba "Regras"):<br>
+        rules_version = '2';<br>
+        service cloud.firestore {<br>
+        &nbsp;&nbsp;match /databases/{db}/documents/{doc=**} {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if true;<br>
+        &nbsp;&nbsp;}<br>
+        }
+      </div>
+    </details>
+
+    <div class="mactions" style="margin-top:20px;">
+      <button class="btn btn-ghost" onclick="clearConfig()">🗑 Remover configuração</button>
+      <button class="btn btn-ghost" onclick="closeConfig()">Cancelar</button>
+      <button class="btn btn-dark" onclick="saveConfig()">💾 Salvar e Conectar</button>
+    </div>
   </div>
 </div>
 
@@ -320,13 +350,29 @@ let records=[],archived=[],activeMes='Todos',editingId=null,dragId=null,useFireb
 // Firebase
 window.addEventListener('fb-ready',()=>{
   useFirebase=true;db=window._db;FB=window._FB;
-  document.getElementById('banner').classList.add('off');
+  document.getElementById('banner').style.background='#F0FDF4';
+  document.getElementById('banner').style.borderColor='#22C55E';
+  document.getElementById('banner').style.color='#15803D';
+  document.getElementById('banner-msg').innerHTML='🟢 <strong>Firebase conectado</strong> — sincronizando em tempo real.';
+  document.getElementById('banner-link').textContent='⚙️ Alterar configuração';
   FB.onSnapshot(FB.query(FB.collection(db,'pedidos'),FB.orderBy('criadoEm')),snap=>{
     records=snap.docs.map(d=>({id:d.id,...d.data()}));render();
   });
   FB.onSnapshot(FB.query(FB.collection(db,'arquivados'),FB.orderBy('arqEm','desc')),snap=>{
     archived=snap.docs.map(d=>({id:d.id,...d.data()}));renderArch();
   });
+});
+window.addEventListener('fb-error',()=>{
+  console.error('Firebase error:',window._fbError);
+  // Show error in config modal
+  setTimeout(()=>{
+    openConfig();
+    showCfgStatus('error','❌ Erro ao conectar: '+window._fbError+' — verifique as credenciais.');
+  },300);
+  // Fall back to local
+  try{records=JSON.parse(localStorage.getItem('bj_v2')||'null')||SEED.map(r=>({...r}));}catch{records=SEED.map(r=>({...r}));}
+  try{archived=JSON.parse(localStorage.getItem('bj_arch')||'[]');}catch{archived=[];}
+  save();render();renderArch();
 });
 window.addEventListener('fb-demo',()=>{
   try{records=JSON.parse(localStorage.getItem('bj_v2')||'null')||SEED.map(r=>({...r}));}catch{records=SEED.map(r=>({...r}));}
@@ -535,7 +581,43 @@ function exportCSV(){
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
   a.download=`pedidos_${new Date().toISOString().split('T')[0]}.csv`;a.click();
 }
-function showFBHelp(){document.getElementById('fbOverlay').classList.add('open');}
+function openConfig(){
+  // Pre-fill existing config if any
+  try{
+    const cfg=JSON.parse(localStorage.getItem('bj_fbconfig')||'{}');
+    ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'].forEach(k=>{
+      const el=document.getElementById('cfg-'+k);
+      if(el) el.value=cfg[k]||'';
+    });
+  }catch{}
+  document.getElementById('configOverlay').classList.add('open');
+}
+function closeConfig(){document.getElementById('configOverlay').classList.remove('open');}
+function saveConfig(){
+  const keys=['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'];
+  const cfg={};
+  for(const k of keys){cfg[k]=(document.getElementById('cfg-'+k).value||'').trim();}
+  if(!cfg.apiKey||!cfg.projectId){
+    showCfgStatus('error','Preencha pelo menos a API Key e o Project ID.');return;
+  }
+  localStorage.setItem('bj_fbconfig',JSON.stringify(cfg));
+  showCfgStatus('ok','✅ Configuração salva! Recarregando para conectar ao Firebase…');
+  setTimeout(()=>location.reload(),1500);
+}
+function clearConfig(){
+  if(!confirm('Remover a configuração do Firebase? O app voltará ao modo local.'))return;
+  localStorage.removeItem('bj_fbconfig');
+  showCfgStatus('ok','Configuração removida. Recarregando…');
+  setTimeout(()=>location.reload(),1200);
+}
+function showCfgStatus(type,msg){
+  const el=document.getElementById('cfg-status');
+  el.style.display='block';
+  el.style.background=type==='ok'?'#F0FDF4':'#FEF2F2';
+  el.style.color=type==='ok'?'#15803D':'#DC2626';
+  el.style.border=type==='ok'?'1px solid #BBF7D0':'1px solid #FECACA';
+  el.textContent=msg;
+}
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){closeModal();document.getElementById('fbOverlay').classList.remove('open');}
   if(e.key==='n'&&!e.target.matches('input,textarea,select'))openModal();
