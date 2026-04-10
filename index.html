@@ -177,8 +177,126 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
 .pdf-drop p{font-size:12.5px;color:var(--muted);}
 .pdf-status{font-size:13px;font-weight:600;padding:10px 14px;border-radius:8px;margin-top:10px;display:none;}
 
-@media(max-width:900px){.board{grid-template-columns:repeat(2,minmax(240px,1fr));}}
-@media(max-width:520px){.board{grid-template-columns:minmax(250px,1fr);}main{padding:14px;}header{padding:0 14px;}.tab{padding:5px 8px;font-size:11px;}}
+
+/* Hide FAB on desktop */
+#fab{display:none;}
+
+/* ── TOUCH: always show card buttons ── */
+@media(hover:none){
+  .card-btns{opacity:1;}
+  .card{cursor:default;}
+}
+
+/* ── TABLET ── */
+@media(max-width:900px){
+  .board{grid-template-columns:repeat(2,minmax(240px,1fr));}
+  .logo-sub{display:none;}
+}
+
+/* ── MOBILE ── */
+@media(max-width:600px){
+  /* Banner */
+  #banner{padding:8px 14px;font-size:12px;gap:4px;}
+
+  /* Header: logo left, hamburger/actions right, tabs go below */
+  header{
+    flex-wrap:wrap;height:auto;padding:10px 14px;gap:8px;
+    position:sticky;top:0;z-index:100;
+  }
+  .logo-name{font-size:13px;}
+  .logo-sub{display:none;}
+
+  /* Tabs become full-width bottom bar */
+  .tabs{
+    order:10;width:100%;
+    background:var(--surface);border-radius:8px;padding:3px;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:2px;
+  }
+  .tab{padding:8px 4px;font-size:11.5px;text-align:center;}
+
+  /* Header actions compact */
+  .hdr-actions{display:flex;gap:6px;align-items:center;}
+  .hdr-actions .btn-ghost{display:none;} /* hide CSV export on mobile */
+
+  /* Main */
+  main{padding:12px 12px 80px;} /* bottom padding for FAB */
+
+  /* Toolbar */
+  .toolbar{flex-direction:column;align-items:flex-start;gap:8px;margin-bottom:10px;}
+  .toolbar h2{font-size:17px;}
+  .toolbar-right{width:100%;display:flex;gap:8px;}
+  .sinput{flex:1;width:auto;min-width:0;font-size:14px;}
+  .import-csv-label{flex-shrink:0;font-size:12px;padding:7px 10px;}
+
+  /* Chips scroll horizontal */
+  .chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .chips::-webkit-scrollbar{display:none;}
+  .chip{flex-shrink:0;padding:5px 12px;font-size:12px;}
+
+  /* Board: horizontal scroll, each col full width */
+  .board{
+    display:flex;flex-direction:row;
+    overflow-x:auto;gap:12px;
+    padding-bottom:16px;
+    scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .board::-webkit-scrollbar{display:none;}
+  .col{
+    min-width:80vw;max-width:88vw;
+    scroll-snap-align:start;flex-shrink:0;
+  }
+
+  /* Cards touch-friendly */
+  .card{padding:13px 14px;cursor:default;}
+  .card-btns{opacity:1;flex-wrap:wrap;gap:5px;}
+  .cbtn{font-size:12px;padding:6px 10px;}
+  .card-nome{font-size:14px;}
+  .card-publi{font-size:12.5px;}
+
+  /* FAB: floating add button */
+  #fab{
+    display:flex;position:fixed;bottom:20px;right:16px;z-index:150;
+    width:52px;height:52px;border-radius:50%;
+    background:var(--text);color:#fff;border:none;
+    font-size:24px;align-items:center;justify-content:center;
+    box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;
+    transition:transform .15s,box-shadow .15s;
+  }
+  #fab:active{transform:scale(.93);}
+  /* Hide header "+" button on mobile */
+  #hdr-new-btn{display:none;}
+
+  /* Modal full screen on mobile */
+  .overlay{padding:0;align-items:flex-end;}
+  .modal{
+    border-radius:20px 20px 0 0;max-width:100%;
+    max-height:92vh;overflow-y:auto;
+    padding:20px 18px 28px;
+  }
+  .fgrid{grid-template-columns:1fr;}
+  .fg.full{grid-column:1;}
+
+  /* Archived table: scroll */
+  .arch-wrap{overflow-x:auto;}
+  table{min-width:520px;}
+
+  /* Estoque items single col */
+  .est-items{grid-template-columns:1fr;}
+  .est-stats{gap:8px;}
+  .est-stat{min-width:80px;}
+
+  /* Config modal */
+  #configOverlay .modal{border-radius:20px 20px 0 0;max-height:95vh;overflow-y:auto;}
+}
+
+/* ── VERY SMALL ── */
+@media(max-width:360px){
+  .col{min-width:92vw;}
+  .tab{font-size:10.5px;padding:7px 2px;}
+}
+
 </style>
 </head>
 <body>
@@ -198,9 +316,9 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
     <button class="tab" onclick="goPage('arquivo',this)">🗂 Arquivados</button>
     <button class="tab" onclick="goPage('estoque',this)">📦 Estoque</button>
   </div>
-  <div style="display:flex;gap:8px;align-items:center;">
+  <div class="hdr-actions" id="hdr-actions">
     <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ CSV</button>
-    <button class="btn btn-dark btn-sm" onclick="openModal()">+ Pedido</button>
+    <button class="btn btn-dark btn-sm" id="hdr-new-btn" onclick="openModal()">+ Pedido</button>
   </div>
 </header>
 
@@ -221,6 +339,7 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
     </div>
   </div>
   <div class="chips" id="chips"></div>
+  <div id="board-hint" style="display:none;font-size:11.5px;color:var(--muted);margin-bottom:8px;">← Deslize para ver todas as colunas →</div>
   <div class="board">
     <div class="col col-0" ondragover="onDragOver(event)" ondrop="onDrop(event,0)" ondragleave="onDragLeave(event)">
       <div class="col-head"><div class="col-label"><div class="dot"></div>Solicitado</div><div class="col-cnt" id="cnt0">0</div></div>
@@ -877,10 +996,21 @@ function parseEstoqueText(text) {
   return {cats: cats.filter(c => c.items.length > 0), ref};
 }
 
+// Show scroll hint on mobile
+if(window.innerWidth <= 600) {
+  const hint = document.getElementById('board-hint');
+  if(hint) hint.style.display = 'block';
+}
+window.addEventListener('resize', () => {
+  const hint = document.getElementById('board-hint');
+  if(hint) hint.style.display = window.innerWidth <= 600 ? 'block' : 'none';
+});
+
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){closeModal();closeConfig();}
   if(e.key==='n'&&!e.target.matches('input,textarea,select'))openModal();
 });
 </script>
+<button id="fab" onclick="openModal()" title="Novo Pedido">+</button>
 </body>
 </html>
