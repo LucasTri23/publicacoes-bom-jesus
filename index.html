@@ -285,6 +285,13 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
   <span id="banner-msg">⚠️ <strong>Modo local</strong> — dados salvos só neste navegador.</span>
   <a id="banner-link" onclick="openConfig()">⚙️ Configurar Firebase →</a>
 </div>
+<div id="migration-banner" style="display:none;background:#EFF6FF;border-bottom:2px solid #3B82F6;padding:10px 24px;font-size:13px;color:#1E40AF;display:none;align-items:center;gap:10px;flex-wrap:wrap;">
+  <span>📦 <strong>Firebase conectado e vazio.</strong> Você tem dados salvos localmente — deseja enviá-los para o Firebase?</span>
+  <div style="display:flex;gap:8px;flex-shrink:0;">
+    <button onclick="runMigration()" style="padding:6px 14px;border-radius:7px;border:none;background:#1D4ED8;color:#fff;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer;">⬆ Migrar agora</button>
+    <button onclick="dismissMigration()" style="padding:6px 14px;border-radius:7px;border:1px solid #BFDBFE;background:transparent;color:#1E40AF;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer;">Ignorar</button>
+  </div>
+</div>
 
 <header>
   <div class="logo">
@@ -502,13 +509,27 @@ let records=[],archived=[],activeMes='Todos',editingId=null,dragId=null,useFireb
 // Firebase
 window.addEventListener('fb-ready',()=>{
   useFirebase=true;db=window._db;FB=window._FB;
-  document.getElementById('banner').style.background='#F0FDF4';
-  document.getElementById('banner').style.borderColor='#22C55E';
-  document.getElementById('banner').style.color='#15803D';
+  const banner=document.getElementById('banner');
+  banner.style.background='#F0FDF4';
+  banner.style.borderColor='#22C55E';
+  banner.style.color='#15803D';
   document.getElementById('banner-msg').innerHTML='🟢 <strong>Firebase conectado</strong> — sincronizando em tempo real.';
   document.getElementById('banner-link').textContent='⚙️ Alterar configuração';
+
+  let firstLoad=true;
   FB.onSnapshot(FB.query(FB.collection(db,'pedidos'),FB.orderBy('criadoEm')),snap=>{
-    records=snap.docs.map(d=>({id:d.id,...d.data()}));render();
+    records=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // On first load, if Firebase is empty but localStorage has data → offer migration
+    if(firstLoad){
+      firstLoad=false;
+      if(records.length===0){
+        const local=JSON.parse(localStorage.getItem('bj_v2')||'null');
+        if(local&&local.length>0){
+          showMigrationBanner(local);
+        }
+      }
+    }
+    render();
   });
   FB.onSnapshot(FB.query(FB.collection(db,'arquivados'),FB.orderBy('arqEm','desc')),snap=>{
     archived=snap.docs.map(d=>({id:d.id,...d.data()}));renderArch();
@@ -791,6 +812,43 @@ function showCfgStatus(type,msg){
   el.style.color=type==='ok'?'#15803D':'#DC2626';
   el.style.border=type==='ok'?'1px solid #BBF7D0':'1px solid #FECACA';
   el.textContent=msg;
+}
+
+
+// ── MIGRATION: local → Firebase ───────────────────────────────────────────────
+let _migrationData = null;
+function showMigrationBanner(localData){
+  _migrationData = localData;
+  const el = document.getElementById('migration-banner');
+  if(el){ el.style.display='flex'; }
+}
+function dismissMigration(){
+  const el = document.getElementById('migration-banner');
+  if(el) el.style.display='none';
+}
+async function runMigration(){
+  if(!_migrationData||!_migrationData.length) return;
+  const btn = document.querySelector('#migration-banner button');
+  if(btn){ btn.textContent='⏳ Migrando…'; btn.disabled=true; }
+  try {
+    let count=0;
+    for(const r of _migrationData){
+      const {id,...data}=r;
+      await FB.addDoc(FB.collection(db,'pedidos'),{...data,criadoEm:data.criadoEm||Date.now()+count});
+      count++;
+    }
+    // Also migrate archived
+    const localArch=JSON.parse(localStorage.getItem('bj_arch')||'[]');
+    for(const r of localArch){
+      const {id,...data}=r;
+      await FB.addDoc(FB.collection(db,'arquivados'),{...data});
+    }
+    dismissMigration();
+    showImportResult(`✅ ${count} pedidos migrados para o Firebase com sucesso!`,'ok');
+  } catch(e) {
+    showImportResult('❌ Erro na migração: '+e.message,'err');
+    if(btn){ btn.textContent='⬆ Migrar agora'; btn.disabled=false; }
+  }
 }
 
 // ── IMPORT CSV → KANBAN ───────────────────────────────────────────────────────
