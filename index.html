@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -9,27 +10,28 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-  // Carrega config salva pelo usuário no app
-  let cfg = {};
-  try { cfg = JSON.parse(localStorage.getItem('bj_fbconfig') || '{}'); } catch {}
+// Carrega config salva pelo usuário no app
+let cfg = {};
+try { cfg = JSON.parse(localStorage.getItem(‘bj_fbconfig’) || ‘{}’); } catch {}
 
-  const hasConfig = cfg.apiKey && cfg.projectId;
+const hasConfig = cfg.apiKey && cfg.projectId;
 
-  if (hasConfig) {
-    try {
-      const app = initializeApp(cfg);
-      const db = getFirestore(app);
-      window._db = db;
-      window._FB = { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy };
-      window.dispatchEvent(new CustomEvent('fb-ready'));
-    } catch(e) {
-      window._fbError = e.message;
-      window.dispatchEvent(new CustomEvent('fb-error'));
-    }
-  } else {
-    window.dispatchEvent(new CustomEvent('fb-demo'));
-  }
+if (hasConfig) {
+try {
+const app = initializeApp(cfg);
+const db = getFirestore(app);
+window._db = db;
+window._FB = { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy };
+window.dispatchEvent(new CustomEvent(‘fb-ready’));
+} catch(e) {
+window._fbError = e.message;
+window.dispatchEvent(new CustomEvent(‘fb-error’));
+}
+} else {
+window.dispatchEvent(new CustomEvent(‘fb-demo’));
+}
 </script>
+
 <style>
 :root {
   --bg:#F7F6F2; --card:#FFF; --surface:#EEECE6; --border:#E0DDD5;
@@ -42,7 +44,7 @@
   --c3:#15803D; --c3b:#F0FDF4; --c3d:#BBF7D0;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;user-select:none;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;}
 input,textarea,select{user-select:text;}
 #banner{background:#FEF3C7;border-bottom:2px solid #F59E0B;padding:9px 24px;font-size:12.5px;color:#92400E;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 #banner a{color:#92400E;font-weight:700;cursor:pointer;text-decoration:underline;}
@@ -79,7 +81,7 @@ main{padding:20px 24px;}
 .col-1 .col-head{border-left:3px solid var(--c1);}.col-1 .col-label{color:var(--c1);}.col-1 .dot{background:var(--c1);}
 .col-2 .col-head{border-left:3px solid var(--c2);}.col-2 .col-label{color:var(--c2);}.col-2 .dot{background:var(--c2);}
 .col-3 .col-head{border-left:3px solid var(--c3);}.col-3 .col-label{color:var(--c3);}.col-3 .dot{background:var(--c3);}
-.card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:11px 13px;box-shadow:var(--sh);cursor:grab;transition:box-shadow .15s,border-color .15s;animation:fadeUp .18s ease;}
+.card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:11px 13px;box-shadow:var(--sh);cursor:grab;transition:box-shadow .15s,border-color .15s;animation:fadeUp .18s ease;user-select:none;-webkit-user-select:none;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 .card:hover{box-shadow:var(--sh2);border-color:#CCC9C2;}
 .card.dragging{opacity:.4;cursor:grabbing;transform:rotate(1.5deg) scale(1.02);box-shadow:var(--sh2);}
@@ -178,126 +180,104 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
 .pdf-status{font-size:13px;font-weight:600;padding:10px 14px;border-radius:8px;margin-top:10px;display:none;}
 
 
-/* Hide FAB on desktop */
+/* ── FAB hidden on desktop ── */
 #fab{display:none;}
 
-/* ── TOUCH: always show card buttons ── */
+/* ── Always show card buttons on touch devices ── */
 @media(hover:none){
-  .card-btns{opacity:1;}
-  .card{cursor:default;}
+  .card-btns{opacity:1 !important;}
 }
 
-/* ── TABLET ── */
+/* ── TABLET (≤ 900px) ── */
 @media(max-width:900px){
   .board{grid-template-columns:repeat(2,minmax(240px,1fr));}
   .logo-sub{display:none;}
 }
 
-/* ── MOBILE ── */
+/* ── MOBILE (≤ 600px) ── */
 @media(max-width:600px){
   /* Banner */
-  #banner{padding:8px 14px;font-size:12px;gap:4px;}
+  #banner{padding:8px 14px;font-size:12px;}
 
-  /* Header: logo left, hamburger/actions right, tabs go below */
-  header{
-    flex-wrap:wrap;height:auto;padding:10px 14px;gap:8px;
-    position:sticky;top:0;z-index:100;
-  }
+  /* Header */
+  header{padding:0 14px;height:auto;flex-wrap:wrap;padding:10px 14px;gap:8px;}
   .logo-name{font-size:13px;}
   .logo-sub{display:none;}
 
-  /* Tabs become full-width bottom bar */
-  .tabs{
-    order:10;width:100%;
-    background:var(--surface);border-radius:8px;padding:3px;
-    display:grid;grid-template-columns:repeat(3,1fr);gap:2px;
+  /* Tabs: full width grid below logo */
+  .tabs{order:10;width:100%;display:grid;grid-template-columns:repeat(3,1fr);}
+  .tab{padding:8px 6px;font-size:12px;text-align:center;}
+
+  /* Hide desktop header buttons, show FAB instead */
+  #hdr-new-btn{display:none;}
+  #fab{
+    display:flex;position:fixed;bottom:20px;right:16px;z-index:150;
+    width:54px;height:54px;border-radius:50%;
+    background:var(--text);color:#fff;border:none;
+    font-size:26px;line-height:1;align-items:center;justify-content:center;
+    box-shadow:0 4px 18px rgba(0,0,0,.28);cursor:pointer;
+    transition:transform .15s;
   }
-  .tab{padding:8px 4px;font-size:11.5px;text-align:center;}
+  #fab:active{transform:scale(.92);}
 
-  /* Header actions compact */
-  .hdr-actions{display:flex;gap:6px;align-items:center;}
-  .hdr-actions .btn-ghost{display:none;} /* hide CSV export on mobile */
-
-  /* Main */
-  main{padding:12px 12px 80px;} /* bottom padding for FAB */
+  /* Main padding */
+  main{padding:12px 12px 84px;}
 
   /* Toolbar */
   .toolbar{flex-direction:column;align-items:flex-start;gap:8px;margin-bottom:10px;}
   .toolbar h2{font-size:17px;}
-  .toolbar-right{width:100%;display:flex;gap:8px;}
-  .sinput{flex:1;width:auto;min-width:0;font-size:14px;}
-  .import-csv-label{flex-shrink:0;font-size:12px;padding:7px 10px;}
+  .toolbar-right{width:100%;flex-wrap:wrap;}
+  .sinput{flex:1;min-width:0;font-size:14px;width:auto;}
+  .import-csv-label{font-size:12px;padding:7px 10px;}
 
-  /* Chips scroll horizontal */
-  .chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  /* Chips horizontal scroll */
+  .chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
   .chips::-webkit-scrollbar{display:none;}
-  .chip{flex-shrink:0;padding:5px 12px;font-size:12px;}
+  .chip{flex-shrink:0;}
 
-  /* Board: horizontal scroll, each col full width */
+  /* Board: horizontal scroll with snap, each col near full-width */
   .board{
-    display:flex;flex-direction:row;
-    overflow-x:auto;gap:12px;
-    padding-bottom:16px;
-    scroll-snap-type:x mandatory;
+    display:flex;flex-direction:row;gap:12px;
+    overflow-x:auto;scroll-snap-type:x mandatory;
     -webkit-overflow-scrolling:touch;
-    scrollbar-width:none;
+    padding-bottom:16px;scrollbar-width:none;
   }
   .board::-webkit-scrollbar{display:none;}
-  .col{
-    min-width:80vw;max-width:88vw;
-    scroll-snap-align:start;flex-shrink:0;
-  }
+  .col{min-width:82vw;max-width:88vw;flex-shrink:0;scroll-snap-align:start;}
 
-  /* Cards touch-friendly */
+  /* Cards: bigger touch targets, always-visible buttons */
   .card{padding:13px 14px;cursor:default;}
   .card-btns{opacity:1;flex-wrap:wrap;gap:5px;}
-  .cbtn{font-size:12px;padding:6px 10px;}
+  .cbtn{font-size:12px;padding:7px 10px;}
   .card-nome{font-size:14px;}
-  .card-publi{font-size:12.5px;}
 
-  /* FAB: floating add button */
-  #fab{
-    display:flex;position:fixed;bottom:20px;right:16px;z-index:150;
-    width:52px;height:52px;border-radius:50%;
-    background:var(--text);color:#fff;border:none;
-    font-size:24px;align-items:center;justify-content:center;
-    box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;
-    transition:transform .15s,box-shadow .15s;
-  }
-  #fab:active{transform:scale(.93);}
-  /* Hide header "+" button on mobile */
-  #hdr-new-btn{display:none;}
-
-  /* Modal full screen on mobile */
+  /* Modal: sheet from bottom */
   .overlay{padding:0;align-items:flex-end;}
   .modal{
     border-radius:20px 20px 0 0;max-width:100%;
     max-height:92vh;overflow-y:auto;
-    padding:20px 18px 28px;
+    padding:20px 18px 32px;
   }
   .fgrid{grid-template-columns:1fr;}
   .fg.full{grid-column:1;}
 
-  /* Archived table: scroll */
+  /* Archived table scroll */
   .arch-wrap{overflow-x:auto;}
   table{min-width:520px;}
 
-  /* Estoque items single col */
+  /* Estoque single col */
   .est-items{grid-template-columns:1fr;}
   .est-stats{gap:8px;}
-  .est-stat{min-width:80px;}
-
-  /* Config modal */
-  #configOverlay .modal{border-radius:20px 20px 0 0;max-height:95vh;overflow-y:auto;}
 }
 
-/* ── VERY SMALL ── */
+/* ── VERY SMALL (≤ 360px) ── */
 @media(max-width:360px){
-  .col{min-width:92vw;}
+  .col{min-width:90vw;}
   .tab{font-size:10.5px;padding:7px 2px;}
 }
 
 </style>
+
 </head>
 <body>
 
@@ -361,6 +341,7 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
 </div>
 
 <!-- ARQUIVADOS -->
+
 <div id="page-arquivo" class="page">
   <div class="toolbar">
     <div>
@@ -384,6 +365,7 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
 </div>
 
 <!-- ESTOQUE -->
+
 <div id="page-estoque" class="page">
   <div style="margin-bottom:18px;">
     <h2 style="font-size:19px;font-weight:800;letter-spacing:-.4px;margin-bottom:3px;">📦 Estoque da Congregação</h2>
@@ -396,6 +378,7 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
   </div>
 
   <!-- PDF drop zone -->
+
   <div id="est-pane-pdf" class="import-box" style="padding:0;">
     <div class="pdf-drop" id="pdfDrop"
       ondragover="event.preventDefault();this.classList.add('dragover')"
@@ -410,6 +393,7 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
   </div>
 
   <!-- Texto pane -->
+
   <div id="est-pane-txt" class="import-box" style="display:none;">
     <div style="font-size:28px;margin-bottom:6px;">📋</div>
     <h3>Colar texto do JW Hub</h3>
@@ -429,6 +413,7 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
 </main>
 
 <!-- MODAL PEDIDO -->
+
 <div class="overlay" id="mOverlay" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <h2 id="mTitle">Novo Pedido</h2>
@@ -453,6 +438,7 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
 </div>
 
 <!-- MODAL CONFIGURAÇÃO FIREBASE -->
+
 <div class="overlay" id="configOverlay" onclick="if(event.target===this)closeConfig()">
   <div class="modal" style="max-width:560px;" onclick="event.stopPropagation()">
     <h2>⚙️ Configuração do Firebase</h2>
@@ -460,44 +446,47 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
       Cole abaixo as credenciais do seu projeto Firebase. Elas ficam salvas <strong>apenas neste navegador</strong> e nunca são enviadas para nenhum servidor externo.
     </p>
 
-    <div id="cfg-status" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;"></div>
+```
+<div id="cfg-status" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;"></div>
 
-    <div class="fgrid">
-      <div class="fg full"><label>API Key</label><input type="text" id="cfg-apiKey" placeholder="AIzaSy…" autocomplete="off"></div>
-      <div class="fg full"><label>Auth Domain</label><input type="text" id="cfg-authDomain" placeholder="meu-projeto.firebaseapp.com"></div>
-      <div class="fg full"><label>Project ID</label><input type="text" id="cfg-projectId" placeholder="meu-projeto"></div>
-      <div class="fg full"><label>Storage Bucket</label><input type="text" id="cfg-storageBucket" placeholder="meu-projeto.appspot.com"></div>
-      <div class="fg"><label>Messaging Sender ID</label><input type="text" id="cfg-messagingSenderId" placeholder="123456789"></div>
-      <div class="fg"><label>App ID</label><input type="text" id="cfg-appId" placeholder="1:123…:web:abc…"></div>
-    </div>
+<div class="fgrid">
+  <div class="fg full"><label>API Key</label><input type="text" id="cfg-apiKey" placeholder="AIzaSy…" autocomplete="off"></div>
+  <div class="fg full"><label>Auth Domain</label><input type="text" id="cfg-authDomain" placeholder="meu-projeto.firebaseapp.com"></div>
+  <div class="fg full"><label>Project ID</label><input type="text" id="cfg-projectId" placeholder="meu-projeto"></div>
+  <div class="fg full"><label>Storage Bucket</label><input type="text" id="cfg-storageBucket" placeholder="meu-projeto.appspot.com"></div>
+  <div class="fg"><label>Messaging Sender ID</label><input type="text" id="cfg-messagingSenderId" placeholder="123456789"></div>
+  <div class="fg"><label>App ID</label><input type="text" id="cfg-appId" placeholder="1:123…:web:abc…"></div>
+</div>
 
-    <details style="margin-top:16px;">
-      <summary style="font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;padding:6px 0;">
-        📖 Como obter essas credenciais?
-      </summary>
-      <ol style="padding-left:18px;margin-top:10px;">
-        <li class="fb-li">Acesse <strong>console.firebase.google.com</strong> e crie um projeto gratuito</li>
-        <li class="fb-li">Clique em <strong>"Adicionar app" → Web</strong> e registre o app</li>
-        <li class="fb-li">Copie cada valor do objeto <strong>firebaseConfig</strong> e cole nos campos acima</li>
-        <li class="fb-li">No console Firebase: <strong>Firestore Database → Criar banco → Modo de teste</strong></li>
-        <li class="fb-li">Hospede no <strong>GitHub Pages</strong> e compartilhe o link com seu parceiro ✅</li>
-      </ol>
-      <div class="fb-code" style="margin-top:10px;">
-        // Regras do Firestore (cole no console, aba "Regras"):<br>
-        rules_version = '2';<br>
-        service cloud.firestore {<br>
-        &nbsp;&nbsp;match /databases/{db}/documents/{doc=**} {<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if true;<br>
-        &nbsp;&nbsp;}<br>
-        }
-      </div>
-    </details>
+<details style="margin-top:16px;">
+  <summary style="font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;padding:6px 0;">
+    📖 Como obter essas credenciais?
+  </summary>
+  <ol style="padding-left:18px;margin-top:10px;">
+    <li class="fb-li">Acesse <strong>console.firebase.google.com</strong> e crie um projeto gratuito</li>
+    <li class="fb-li">Clique em <strong>"Adicionar app" → Web</strong> e registre o app</li>
+    <li class="fb-li">Copie cada valor do objeto <strong>firebaseConfig</strong> e cole nos campos acima</li>
+    <li class="fb-li">No console Firebase: <strong>Firestore Database → Criar banco → Modo de teste</strong></li>
+    <li class="fb-li">Hospede no <strong>GitHub Pages</strong> e compartilhe o link com seu parceiro ✅</li>
+  </ol>
+  <div class="fb-code" style="margin-top:10px;">
+    // Regras do Firestore (cole no console, aba "Regras"):<br>
+    rules_version = '2';<br>
+    service cloud.firestore {<br>
+    &nbsp;&nbsp;match /databases/{db}/documents/{doc=**} {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if true;<br>
+    &nbsp;&nbsp;}<br>
+    }
+  </div>
+</details>
 
-    <div class="mactions" style="margin-top:20px;">
-      <button class="btn btn-ghost" onclick="clearConfig()">🗑 Remover configuração</button>
-      <button class="btn btn-ghost" onclick="closeConfig()">Cancelar</button>
-      <button class="btn btn-dark" onclick="saveConfig()">💾 Salvar e Conectar</button>
-    </div>
+<div class="mactions" style="margin-top:20px;">
+  <button class="btn btn-ghost" onclick="clearConfig()">🗑 Remover configuração</button>
+  <button class="btn btn-ghost" onclick="closeConfig()">Cancelar</button>
+  <button class="btn btn-dark" onclick="saveConfig()">💾 Salvar e Conectar</button>
+</div>
+```
+
   </div>
 </div>
 
@@ -587,21 +576,43 @@ function setMes(m){activeMes=m;render();}
 
 // ── DRAG & DROP ───────────────────────────────────────────────────────────────
 function onDragStart(e,id){
-  dragId=id;e.dataTransfer.effectAllowed='move';
+  dragId=id;
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain', id); // required for Firefox
   setTimeout(()=>{const el=document.getElementById('card_'+id);if(el)el.classList.add('dragging');},0);
 }
-function onDragEnd(){
-  document.querySelectorAll('.card').forEach(c=>c.classList.remove('dragging'));
-  document.querySelectorAll('.col').forEach(c=>c.classList.remove('drag-over'));
-}
-function onDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';e.currentTarget.classList.add('drag-over');}
-function onDragLeave(e){e.currentTarget.classList.remove('drag-over');}
-async function onDrop(e,etapa){
-  e.preventDefault();e.currentTarget.classList.remove('drag-over');
-  if(!dragId)return;
-  if(useFirebase)await FB.updateDoc(FB.doc(db,'pedidos',dragId),{etapa});
-  else{const r=records.find(x=>x.id===dragId);if(r)r.etapa=etapa;save();render();}
+function onDragEnd(e){
   dragId=null;
+  document.querySelectorAll('.card').forEach(el=>el.classList.remove('dragging'));
+  document.querySelectorAll('.col').forEach(el=>el.classList.remove('drag-over'));
+}
+function getColEl(e){
+  // Walk up from event target to find the .col element
+  let el=e.target;
+  while(el && !el.classList?.contains('col')) el=el.parentElement;
+  return el;
+}
+function onDragOver(e){
+  e.preventDefault();e.stopPropagation();
+  e.dataTransfer.dropEffect='move';
+  const col=getColEl(e)||e.currentTarget;
+  document.querySelectorAll('.col').forEach(el=>el.classList.remove('drag-over'));
+  col.classList.add('drag-over');
+}
+function onDragLeave(e){
+  // Only remove if leaving the col entirely (not entering a child)
+  const col=getColEl(e)||e.currentTarget;
+  const related=e.relatedTarget;
+  if(!related || !col.contains(related)) col.classList.remove('drag-over');
+}
+async function onDrop(e,etapa){
+  e.preventDefault();e.stopPropagation();
+  document.querySelectorAll('.col').forEach(el=>el.classList.remove('drag-over'));
+  const id=dragId||e.dataTransfer.getData('text/plain');
+  dragId=null;
+  if(!id)return;
+  if(useFirebase)await FB.updateDoc(FB.doc(db,'pedidos',id),{etapa});
+  else{const r=records.find(x=>x.id===id);if(r)r.etapa=etapa;save();render();}
 }
 
 // ── ARCHIVE ───────────────────────────────────────────────────────────────────
@@ -996,21 +1007,21 @@ function parseEstoqueText(text) {
   return {cats: cats.filter(c => c.items.length > 0), ref};
 }
 
-// Show scroll hint on mobile
-if(window.innerWidth <= 600) {
-  const hint = document.getElementById('board-hint');
-  if(hint) hint.style.display = 'block';
+// Show scroll hint on mobile only
+function updateHint(){
+  const hint=document.getElementById('board-hint');
+  if(hint) hint.style.display=window.innerWidth<=600?'block':'none';
 }
-window.addEventListener('resize', () => {
-  const hint = document.getElementById('board-hint');
-  if(hint) hint.style.display = window.innerWidth <= 600 ? 'block' : 'none';
-});
+updateHint();
+window.addEventListener('resize',updateHint);
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){closeModal();closeConfig();}
   if(e.key==='n'&&!e.target.matches('input,textarea,select'))openModal();
 });
 </script>
+
 <button id="fab" onclick="openModal()" title="Novo Pedido">+</button>
+
 </body>
 </html>
