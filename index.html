@@ -487,8 +487,13 @@ td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
   </div>
 </details>
 
-<div class="mactions" style="margin-top:20px;">
-  <button class="btn btn-ghost" onclick="clearConfig()">🗑 Remover configuração</button>
+<div id="migrate-section" style="display:none;margin-top:16px;padding:14px;background:#EFF6FF;border-radius:10px;border:1px solid #BFDBFE;">
+  <div style="font-size:13px;font-weight:700;color:#1E40AF;margin-bottom:8px;">📦 Firebase vazio detectado</div>
+  <div style="font-size:12.5px;color:#1E40AF;margin-bottom:10px;">Você tem <strong id="migrate-count">0</strong> pedidos salvos localmente. Deseja enviá-los para o Firebase agora?</div>
+  <button onclick="runMigration()" style="padding:7px 16px;border-radius:7px;border:none;background:#1D4ED8;color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;width:100%;">⬆ Migrar pedidos para o Firebase</button>
+</div>
+<div class="mactions" style="margin-top:16px;">
+  <button class="btn btn-ghost" onclick="clearConfig()">🗑 Remover</button>
   <button class="btn btn-ghost" onclick="closeConfig()">Cancelar</button>
   <button class="btn btn-dark" onclick="saveConfig()">💾 Salvar e Conectar</button>
 </div>
@@ -519,7 +524,6 @@ window.addEventListener('fb-ready',()=>{
   let firstLoad=true;
   FB.onSnapshot(FB.query(FB.collection(db,'pedidos'),FB.orderBy('criadoEm')),snap=>{
     records=snap.docs.map(d=>({id:d.id,...d.data()}));
-    // On first load, if Firebase is empty but localStorage has data → offer migration
     if(firstLoad){
       firstLoad=false;
       if(records.length===0){
@@ -530,6 +534,7 @@ window.addEventListener('fb-ready',()=>{
       }
     }
     render();
+    checkMigrateSection();
   });
   FB.onSnapshot(FB.query(FB.collection(db,'arquivados'),FB.orderBy('arqEm','desc')),snap=>{
     archived=snap.docs.map(d=>({id:d.id,...d.data()}));renderArch();
@@ -548,7 +553,10 @@ window.addEventListener('fb-error',()=>{
   save();render();renderArch();
 });
 window.addEventListener('fb-demo',()=>{
-  try{records=JSON.parse(localStorage.getItem('bj_v2')||'null')||SEED.map(r=>({...r}));}catch{records=SEED.map(r=>({...r}));}
+  try{
+    const saved=JSON.parse(localStorage.getItem('bj_v2')||'null');
+    records=saved&&saved.length>0?saved:SEED.map(r=>({...r}));
+  }catch{records=SEED.map(r=>({...r}));}
   try{archived=JSON.parse(localStorage.getItem('bj_arch')||'[]');}catch{archived=[];}
   save();render();renderArch();
 });
@@ -777,7 +785,6 @@ function exportCSV(){
   a.download=`pedidos_${new Date().toISOString().split('T')[0]}.csv`;a.click();
 }
 function openConfig(){
-  // Pre-fill existing config if any
   try{
     const cfg=JSON.parse(localStorage.getItem('bj_fbconfig')||'{}');
     ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'].forEach(k=>{
@@ -785,6 +792,7 @@ function openConfig(){
       if(el) el.value=cfg[k]||'';
     });
   }catch{}
+  checkMigrateSection();
   document.getElementById('configOverlay').classList.add('open');
 }
 function closeConfig(){document.getElementById('configOverlay').classList.remove('open');}
@@ -819,12 +827,30 @@ function showCfgStatus(type,msg){
 let _migrationData = null;
 function showMigrationBanner(localData){
   _migrationData = localData;
+  // Top banner
   const el = document.getElementById('migration-banner');
   if(el){ el.style.display='flex'; }
+  // Also show inside config modal if it happens to be open
+  checkMigrateSection();
+}
+function checkMigrateSection(){
+  const local = JSON.parse(localStorage.getItem('bj_v2')||'null');
+  const section = document.getElementById('migrate-section');
+  const countEl = document.getElementById('migrate-count');
+  if(!section) return;
+  if(useFirebase && records.length === 0 && local && local.length > 0){
+    _migrationData = local;
+    if(countEl) countEl.textContent = local.length;
+    section.style.display = 'block';
+  } else {
+    section.style.display = 'none';
+  }
 }
 function dismissMigration(){
   const el = document.getElementById('migration-banner');
   if(el) el.style.display='none';
+  const sec = document.getElementById('migrate-section');
+  if(sec) sec.style.display='none';
 }
 async function runMigration(){
   if(!_migrationData||!_migrationData.length) return;
