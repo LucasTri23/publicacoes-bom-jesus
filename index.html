@@ -415,8 +415,15 @@ td.td-date{font-family:var(--mono);font-size:11.5px;color:var(--muted);}
       </ol>
       <div class="fb-code">// Regras Firestore (aba Regras):<br>rules_version = '2';<br>service cloud.firestore {<br>&nbsp;&nbsp;match /databases/{db}/documents/{doc=**} {<br>&nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if true;<br>&nbsp;&nbsp;}<br>}</div>
     </details>
+    <details style="margin-top:14px;">
+      <summary style="font-size:12px;font-weight:700;color:#DC2626;cursor:pointer;">⚠️ Restaurar dados da planilha</summary>
+      <div style="margin-top:10px;padding:12px;background:#FEF2F2;border-radius:8px;border:1px solid #FECACA;">
+        <p style="font-size:12.5px;color:#7F1D1D;margin-bottom:10px;">Apaga os dados locais e recarrega os 89 pedidos originais da planilha.</p>
+        <button onclick="resetToSeed()" style="padding:8px 16px;border-radius:7px;border:none;background:#DC2626;color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;width:100%;">🔄 Restaurar dados da planilha</button>
+      </div>
+    </details>
     <div class="mactions" style="margin-top:16px;">
-      <button class="btn btn-ghost" onclick="clearConfig()">🗑 Remover</button>
+      <button class="btn btn-ghost" onclick="clearConfig()">🗑 Remover Firebase</button>
       <button class="btn btn-ghost" onclick="closeConfig()">Cancelar</button>
       <button class="btn btn-dark" onclick="saveConfig()">💾 Salvar e Conectar</button>
     </div>
@@ -484,6 +491,8 @@ window.addEventListener('fb-demo',()=>{ loadLocal(); });
 function loadLocal(){
   try{const s=JSON.parse(localStorage.getItem('bj_v2')||'null');records=s&&s.length>0?s:SEED.map(r=>({...r}));}catch{records=SEED.map(r=>({...r}));}
   try{archived=JSON.parse(localStorage.getItem('bj_arch')||'[]');}catch{archived=[];}
+  // If still empty after loading, use SEED
+  if(!records||records.length===0)records=SEED.map(r=>({...r}));
   saveLocal();render();renderArch();
 }
 function saveLocal(){
@@ -896,6 +905,23 @@ function showToast(msg,type){
 function updateHint(){const h=document.getElementById('board-hint');if(h)h.style.display=window.innerWidth<=600?'block':'none';}
 updateHint();
 window.addEventListener('resize',updateHint);
+
+// ── RESET TO SEED ────────────────────────────────────────────────────────────
+function resetToSeed(){
+  if(!confirm('Isso vai apagar os dados locais e carregar os 89 pedidos originais da planilha. Continuar?'))return;
+  localStorage.removeItem('bj_v2');
+  localStorage.removeItem('bj_arch');
+  localStorage.removeItem('bj_estoque');
+  records=SEED.map(r=>({...r}));
+  archived=[];
+  localStorage.setItem('bj_v2',JSON.stringify(records));
+  localStorage.setItem('bj_arch','[]');
+  closeConfig();
+  activeMes='Todos';
+  render();
+  renderArch();
+  showToast('✅ 89 pedidos da planilha carregados!','ok');
+}
 
 // ── KEYBOARD ─────────────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
