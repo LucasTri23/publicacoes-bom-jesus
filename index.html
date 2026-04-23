@@ -6,52 +6,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Publicações · Bom Jesus</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<!-- Firebase compat SDK — funciona em todos os navegadores incluindo iOS Safari -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script>
-(function() {
-  let cfg = {};
-  try { cfg = JSON.parse(localStorage.getItem('bj_fbconfig') || '{}'); } catch {}
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-const hasConfig = !!(cfg.apiKey && cfg.projectId);
+// Carrega config salva pelo usuário no app
+let cfg = {};
+try { cfg = JSON.parse(localStorage.getItem(‘bj_fbconfig’) || ‘{}’); } catch {}
+
+const hasConfig = cfg.apiKey && cfg.projectId;
 
 if (hasConfig) {
 try {
-const app = firebase.initializeApp(cfg);
-const db = firebase.firestore();
-
-```
-  // Wrap compat API to match the interface the app expects
-  window._db = db;
-  window._FB = {
-    collection: (db, name) => db.collection(name),
-    addDoc: (ref, data) => ref.add(data),
-    updateDoc: (ref, data) => ref.update(data),
-    deleteDoc: (ref) => ref.delete(),
-    doc: (db, col, id) => db.collection(col).doc(id),
-    onSnapshot: (query, cb) => query.onSnapshot(snap => {
-      snap.docs; // ensure it's a QuerySnapshot
-      cb(snap);
-    }),
-    query: (ref) => ref,
-    orderBy: (field, dir) => field // handled differently below
-  };
-
-  // Override onSnapshot to work with compat ordered queries
-  window._fbReady = true;
-  window.dispatchEvent(new CustomEvent('fb-ready'));
+const app = initializeApp(cfg);
+const db = getFirestore(app);
+window._db = db;
+window._FB = { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy };
+window.dispatchEvent(new CustomEvent(‘fb-ready’));
 } catch(e) {
-  console.error('Firebase init error:', e);
-  window._fbError = e.message;
-  window.dispatchEvent(new CustomEvent('fb-error'));
+window._fbError = e.message;
+window.dispatchEvent(new CustomEvent(‘fb-error’));
 }
-```
-
 } else {
 window.dispatchEvent(new CustomEvent(‘fb-demo’));
 }
-})();
 </script>
 
 <style>
@@ -544,571 +522,36 @@ window.addEventListener('fb-ready',()=>{
   document.getElementById('banner-link').textContent='⚙️ Alterar configuração';
 
   let firstLoad=true;
-
-  db.collection('pedidos').orderBy('criadoEm').onSnapshot(snap=>{
+  FB.onSnapshot(FB.query(FB.collection(db,'pedidos'),FB.orderBy('criadoEm')),snap=>{
     records=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(firstLoad){
       firstLoad=false;
       if(records.length===0){
         const local=JSON.parse(localStorage.getItem('bj_v2')||'null');
-        if(local&&local.length>0) showMigrationBanner(local);
+        if(local&&local.length>0){
+          showMigrationBanner(local);
+        }
       }
     }
     render();
     checkMigrateSection();
-  }, err=>{
-    console.error('Firestore pedidos error:', err);
-    showCfgStatus('error','❌ Erro Firestore: '+err.message);
-    openConfig();
   });
-
-  db.collection('arquivados').orderBy('arqEm','desc').onSnapshot(snap=>{
-    archived=snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderArch();
-  }, err=>console.error('Firestore arquivados error:', err));!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Publicações · Bom Jesus</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<!-- Firebase compat SDK — funciona em todos os navegadores incluindo iOS Safari -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
-<script>
-(function() {
-  let cfg = {};
-  try { cfg = JSON.parse(localStorage.getItem('bj_fbconfig') || '{}'); } catch {}
-
-  const hasConfig = !!(cfg.apiKey && cfg.projectId);
-
-  if (hasConfig) {
-    try {
-      const app = firebase.initializeApp(cfg);
-      const db = firebase.firestore();
-
-      // Wrap compat API to match the interface the app expects
-      window._db = db;
-      window._FB = {
-        collection: (db, name) => db.collection(name),
-        addDoc: (ref, data) => ref.add(data),
-        updateDoc: (ref, data) => ref.update(data),
-        deleteDoc: (ref) => ref.delete(),
-        doc: (db, col, id) => db.collection(col).doc(id),
-        onSnapshot: (query, cb) => query.onSnapshot(snap => {
-          snap.docs; // ensure it's a QuerySnapshot
-          cb(snap);
-        }),
-        query: (ref) => ref,
-        orderBy: (field, dir) => field // handled differently below
-      };
-
-      // Override onSnapshot to work with compat ordered queries
-      window._fbReady = true;
-      window.dispatchEvent(new CustomEvent('fb-ready'));
-    } catch(e) {
-      console.error('Firebase init error:', e);
-      window._fbError = e.message;
-      window.dispatchEvent(new CustomEvent('fb-error'));
-    }
-  } else {
-    window.dispatchEvent(new CustomEvent('fb-demo'));
-  }
-})();
-</script>
-
-<style>
-:root {
-  --bg:#F7F6F2; --card:#FFF; --surface:#EEECE6; --border:#E0DDD5;
-  --text:#1A1917; --muted:#79716B;
-  --font:'Plus Jakarta Sans',sans-serif; --mono:'JetBrains Mono',monospace;
-  --r:10px; --sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04); --sh2:0 8px 24px rgba(0,0,0,.12);
-  --c0:#1D4ED8; --c0b:#EFF6FF; --c0d:#BFDBFE;
-  --c1:#7C3AED; --c1b:#F5F3FF; --c1d:#DDD6FE;
-  --c2:#B45309; --c2b:#FFFBEB; --c2d:#FDE68A;
-  --c3:#15803D; --c3b:#F0FDF4; --c3d:#BBF7D0;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;}
-input,textarea,select{user-select:text;}
-#banner{background:#FEF3C7;border-bottom:2px solid #F59E0B;padding:9px 24px;font-size:12.5px;color:#92400E;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-#banner a{color:#92400E;font-weight:700;cursor:pointer;text-decoration:underline;}
-#banner.off{display:none;}
-header{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;gap:12px;}
-.logo{display:flex;align-items:center;gap:9px;flex-shrink:0;}
-.logo-icon{width:32px;height:32px;background:var(--text);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
-.logo-name{font-size:13.5px;font-weight:800;letter-spacing:-.3px;}
-.logo-sub{font-size:10.5px;color:var(--muted);}
-.tabs{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;}
-.tab{padding:5px 14px;border-radius:6px;font-size:12.5px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:var(--font);transition:all .15s;white-space:nowrap;}
-.tab.active{background:var(--card);color:var(--text);box-shadow:var(--sh);}
-main{padding:20px 24px;}
-.page{display:none;}.page.active{display:block;}
-.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
-.toolbar h2{font-size:19px;font-weight:800;letter-spacing:-.4px;}
-.toolbar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.sinput{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;border-radius:8px;padding:7px 12px;outline:none;width:200px;transition:border-color .15s;}
-.sinput:focus{border-color:var(--text);}
-.chips{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
-.chip{padding:4px 12px;border-radius:20px;font-size:11.5px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--font);transition:all .15s;}
-.chip:hover{color:var(--text);border-color:var(--muted);}
-.chip.active{background:var(--text);color:#fff;border-color:var(--text);}
-.board{display:grid;grid-template-columns:repeat(4,minmax(255px,1fr));gap:14px;align-items:start;overflow-x:auto;padding-bottom:12px;}
-.col{background:var(--surface);border-radius:12px;border:1px solid var(--border);min-height:180px;display:flex;flex-direction:column;transition:background .15s,border-color .15s;}
-.col.drag-over{background:#EDE9FB;border-color:#7C3AED;}
-.col-head{padding:13px 14px 11px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
-.col-label{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;}
-.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.col-cnt{font-family:var(--mono);font-size:11px;font-weight:500;background:var(--card);border:1px solid var(--border);padding:2px 8px;border-radius:20px;color:var(--muted);}
-.col-body{padding:10px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:60px;}
-.col-empty{padding:16px;text-align:center;color:var(--muted);font-size:12.5px;}
-.col-0 .col-head{border-left:3px solid var(--c0);}.col-0 .col-label{color:var(--c0);}.col-0 .dot{background:var(--c0);}
-.col-1 .col-head{border-left:3px solid var(--c1);}.col-1 .col-label{color:var(--c1);}.col-1 .dot{background:var(--c1);}
-.col-2 .col-head{border-left:3px solid var(--c2);}.col-2 .col-label{color:var(--c2);}.col-2 .dot{background:var(--c2);}
-.col-3 .col-head{border-left:3px solid var(--c3);}.col-3 .col-label{color:var(--c3);}.col-3 .dot{background:var(--c3);}
-.card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:11px 13px;box-shadow:var(--sh);cursor:grab;transition:box-shadow .15s,border-color .15s;animation:fadeUp .18s ease;user-select:none;-webkit-user-select:none;}
-@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-.card:hover{box-shadow:var(--sh2);border-color:#CCC9C2;}
-.card.dragging{opacity:.4;cursor:grabbing;transform:rotate(1.5deg) scale(1.02);box-shadow:var(--sh2);}
-.card-tag{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:2px 7px;border-radius:4px;margin-bottom:7px;}
-.tag-0{background:var(--c0b);color:var(--c0);}.tag-1{background:var(--c1b);color:var(--c1);}
-.tag-2{background:var(--c2b);color:var(--c2);}.tag-3{background:var(--c3b);color:var(--c3);}
-.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;}
-.card-nome{font-size:13.5px;font-weight:700;line-height:1.3;}
-.card-qty{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--surface);padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
-.card-publi{font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.4;}
-.card-obs{font-size:11px;color:var(--muted);font-style:italic;margin-bottom:6px;}
-.card-foot{display:flex;justify-content:space-between;align-items:center;gap:6px;}
-.card-date{font-family:var(--mono);font-size:11px;color:var(--muted);}
-.card-btns{display:flex;gap:4px;opacity:0;transition:opacity .15s;}
-.card:hover .card-btns{opacity:1;}
-.cbtn{font-size:11px;padding:4px 7px;border-radius:6px;border:none;cursor:pointer;font-family:var(--font);font-weight:700;transition:all .15s;white-space:nowrap;}
-.cbtn-edit{background:var(--surface);color:var(--muted);}.cbtn-edit:hover{color:var(--text);}
-.cbtn-archive{background:#FEF9C3;color:#854D0E;}.cbtn-archive:hover{background:#FDE047;}
-.cbtn-del{background:#FEE2E2;color:#DC2626;}.cbtn-del:hover{background:#FECACA;}
-/* ARCHIVED */
-.arch-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
-table{width:100%;border-collapse:collapse;font-size:12.5px;}
-thead th{background:var(--surface);padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;border-bottom:1px solid var(--border);white-space:nowrap;}
-tbody tr{border-bottom:1px solid rgba(224,221,213,.6);}
-tbody tr:last-child{border:none;}
-tbody tr:hover{background:#FAFAF8;}
-td{padding:9px 14px;vertical-align:middle;}
-td.td-nome{font-weight:600;}
-td.td-publi{color:var(--muted);max-width:190px;font-size:12px;}
-td.td-qty{font-family:var(--mono);text-align:center;}
-td.td-date{font-family:var(--mono);font-size:11.5px;color:var(--muted);}
-td.td-obs{font-size:11.5px;color:var(--muted);font-style:italic;}
-.arch-empty{padding:48px;text-align:center;color:var(--muted);}
-.arch-empty div{font-size:32px;margin-bottom:8px;}
-.restore-btn{font-size:11px;padding:4px 9px;border-radius:6px;border:none;cursor:pointer;font-family:var(--font);font-weight:700;background:var(--surface);color:var(--muted);transition:all .15s;}
-.restore-btn:hover{color:var(--text);}
-/* ESTOQUE */
-.import-box{background:var(--card);border:2px dashed var(--border);border-radius:12px;padding:26px;text-align:center;margin-bottom:20px;transition:border-color .2s;}
-.import-box:hover{border-color:var(--text);}
-.import-box h3{font-size:14px;font-weight:700;margin-bottom:5px;}
-.import-box p{font-size:12.5px;color:var(--muted);margin-bottom:12px;}
-.import-box textarea{width:100%;min-height:110px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--font);font-size:13px;color:var(--text);resize:vertical;outline:none;}
-.import-box textarea:focus{border-color:var(--text);}
-.est-stats{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
-.est-stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex:1;min-width:110px;}
-.est-stat .n{font-family:var(--mono);font-size:20px;font-weight:700;}
-.est-stat .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
-.est-ref{font-size:12px;color:var(--muted);font-style:italic;margin-bottom:14px;}
-.est-cat{margin-bottom:22px;}
-.est-cat-title{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
-.est-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:7px;}
-.est-item{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
-.est-item:hover{border-color:#CCC9C2;}
-.est-name{font-size:12.5px;font-weight:500;line-height:1.4;}
-.est-code{font-size:10.5px;color:var(--muted);font-family:var(--mono);}
-.est-qty{font-family:var(--mono);font-size:15px;font-weight:700;min-width:38px;text-align:right;}
-.qty-hi{color:#15803D;}.qty-md{color:#B45309;}.qty-lo{color:#DC2626;}
-/* MODAL */
-.overlay{display:none;position:fixed;inset:0;background:rgba(26,25,23,.5);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:16px;}
-.overlay.open{display:flex;}
-.modal{background:var(--card);border-radius:14px;border:1px solid var(--border);padding:26px;width:100%;max-width:490px;box-shadow:var(--sh2);animation:mIn .18s ease;}
-@keyframes mIn{from{opacity:0;transform:scale(.97)}}
-.modal h2{font-size:16px;font-weight:800;margin-bottom:18px;letter-spacing:-.3px;}
-.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
-.fg{display:flex;flex-direction:column;gap:4px;}
-.fg.full{grid-column:1/-1;}
-.fg label{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
-.fg input,.fg select,.fg textarea{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;border-radius:8px;padding:8px 11px;outline:none;transition:border-color .15s;width:100%;}
-.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--text);}
-.fg textarea{resize:vertical;min-height:54px;}
-.mactions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 15px;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .15s;}
-.btn-dark{background:var(--text);color:#fff;}.btn-dark:hover{opacity:.85;}
-.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}.btn-ghost:hover{color:var(--text);border-color:var(--muted);}
-.btn-sm{padding:6px 11px;font-size:12px;border-radius:7px;}
-.fb-code{margin-top:12px;padding:11px;background:var(--surface);border-radius:8px;font-family:var(--mono);font-size:11px;line-height:1.8;color:var(--muted);}
-.fb-li{margin-bottom:7px;font-size:13px;line-height:1.6;color:var(--muted);}
-.fb-li strong{color:var(--text);}
-
-/* ── IMPORT CSV ── */
-.import-csv-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
-.import-csv-box p{font-size:13px;color:var(--muted);flex:1;min-width:160px;}
-.import-csv-label{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;background:var(--surface);color:var(--text);border:1px solid var(--border);transition:all .15s;}
-.import-csv-label:hover{border-color:var(--muted);}
-#csv-file-input{display:none;}
-.import-result{font-size:12.5px;padding:8px 14px;border-radius:8px;margin-top:0;font-weight:600;}
-.import-result.ok{background:#F0FDF4;color:#15803D;border:1px solid #BBF7D0;}
-.import-result.err{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;}
-/* ── PDF DROP ── */
-.pdf-drop{border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;transition:all .2s;cursor:pointer;position:relative;}
-.pdf-drop:hover,.pdf-drop.dragover{border-color:var(--text);background:var(--surface);}
-.pdf-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-.pdf-drop-icon{font-size:28px;margin-bottom:6px;}
-.pdf-drop h3{font-size:14px;font-weight:700;margin-bottom:4px;}
-.pdf-drop p{font-size:12.5px;color:var(--muted);}
-.pdf-status{font-size:13px;font-weight:600;padding:10px 14px;border-radius:8px;margin-top:10px;display:none;}
-
-
-/* ── FAB hidden on desktop ── */
-#fab{display:none;}
-
-/* ── Always show card buttons on touch devices ── */
-@media(hover:none){
-  .card-btns{opacity:1 !important;}
-}
-
-/* ── TABLET (≤ 900px) ── */
-@media(max-width:900px){
-  .board{grid-template-columns:repeat(2,minmax(240px,1fr));}
-  .logo-sub{display:none;}
-}
-
-/* ── MOBILE (≤ 600px) ── */
-@media(max-width:600px){
-  /* Banner */
-  #banner{padding:8px 14px;font-size:12px;}
-
-  /* Header */
-  header{padding:0 14px;height:auto;flex-wrap:wrap;padding:10px 14px;gap:8px;}
-  .logo-name{font-size:13px;}
-  .logo-sub{display:none;}
-
-  /* Tabs: full width grid below logo */
-  .tabs{order:10;width:100%;display:grid;grid-template-columns:repeat(3,1fr);}
-  .tab{padding:8px 6px;font-size:12px;text-align:center;}
-
-  /* Hide desktop header buttons, show FAB instead */
-  #hdr-new-btn{display:none;}
-  #fab{
-    display:flex;position:fixed;bottom:20px;right:16px;z-index:150;
-    width:54px;height:54px;border-radius:50%;
-    background:var(--text);color:#fff;border:none;
-    font-size:26px;line-height:1;align-items:center;justify-content:center;
-    box-shadow:0 4px 18px rgba(0,0,0,.28);cursor:pointer;
-    transition:transform .15s;
-  }
-  #fab:active{transform:scale(.92);}
-
-  /* Main padding */
-  main{padding:12px 12px 84px;}
-
-  /* Toolbar */
-  .toolbar{flex-direction:column;align-items:flex-start;gap:8px;margin-bottom:10px;}
-  .toolbar h2{font-size:17px;}
-  .toolbar-right{width:100%;flex-wrap:wrap;}
-  .sinput{flex:1;min-width:0;font-size:14px;width:auto;}
-  .import-csv-label{font-size:12px;padding:7px 10px;}
-
-  /* Chips horizontal scroll */
-  .chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-  .chips::-webkit-scrollbar{display:none;}
-  .chip{flex-shrink:0;}
-
-  /* Board: horizontal scroll with snap, each col near full-width */
-  .board{
-    display:flex;flex-direction:row;gap:12px;
-    overflow-x:auto;scroll-snap-type:x mandatory;
-    -webkit-overflow-scrolling:touch;
-    padding-bottom:16px;scrollbar-width:none;
-  }
-  .board::-webkit-scrollbar{display:none;}
-  .col{min-width:82vw;max-width:88vw;flex-shrink:0;scroll-snap-align:start;}
-
-  /* Cards: bigger touch targets, always-visible buttons */
-  .card{padding:13px 14px;cursor:default;}
-  .card-btns{opacity:1;flex-wrap:wrap;gap:5px;}
-  .cbtn{font-size:12px;padding:7px 10px;}
-  .card-nome{font-size:14px;}
-
-  /* Modal: sheet from bottom */
-  .overlay{padding:0;align-items:flex-end;}
-  .modal{
-    border-radius:20px 20px 0 0;max-width:100%;
-    max-height:92vh;overflow-y:auto;
-    padding:20px 18px 32px;
-  }
-  .fgrid{grid-template-columns:1fr;}
-  .fg.full{grid-column:1;}
-
-  /* Archived table scroll */
-  .arch-wrap{overflow-x:auto;}
-  table{min-width:520px;}
-
-  /* Estoque single col */
-  .est-items{grid-template-columns:1fr;}
-  .est-stats{gap:8px;}
-}
-
-/* ── VERY SMALL (≤ 360px) ── */
-@media(max-width:360px){
-  .col{min-width:90vw;}
-  .tab{font-size:10.5px;padding:7px 2px;}
-}
-
-</style>
-
-</head>
-<body>
-
-<div id="banner">
-  <span id="banner-msg">⚠️ <strong>Modo local</strong> — dados salvos só neste navegador.</span>
-  <a id="banner-link" onclick="openConfig()">⚙️ Configurar Firebase →</a>
-</div>
-<div id="migration-banner" style="display:none;background:#EFF6FF;border-bottom:2px solid #3B82F6;padding:10px 24px;font-size:13px;color:#1E40AF;display:none;align-items:center;gap:10px;flex-wrap:wrap;">
-  <span>📦 <strong>Firebase conectado e vazio.</strong> Você tem dados salvos localmente — deseja enviá-los para o Firebase?</span>
-  <div style="display:flex;gap:8px;flex-shrink:0;">
-    <button onclick="runMigration()" style="padding:6px 14px;border-radius:7px;border:none;background:#1D4ED8;color:#fff;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer;">⬆ Migrar agora</button>
-    <button onclick="dismissMigration()" style="padding:6px 14px;border-radius:7px;border:1px solid #BFDBFE;background:transparent;color:#1E40AF;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer;">Ignorar</button>
-  </div>
-</div>
-
-<header>
-  <div class="logo">
-    <div class="logo-icon">📖</div>
-    <div><div class="logo-name">Publicações</div><div class="logo-sub">Congregação Bom Jesus</div></div>
-  </div>
-  <div class="tabs">
-    <button class="tab active" onclick="goPage('kanban',this)">📋 Kanban</button>
-    <button class="tab" onclick="goPage('arquivo',this)">🗂 Arquivados</button>
-    <button class="tab" onclick="goPage('estoque',this)">📦 Estoque</button>
-  </div>
-  <div class="hdr-actions" id="hdr-actions">
-    <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ CSV</button>
-    <button class="btn btn-dark btn-sm" id="hdr-new-btn" onclick="openModal()">+ Pedido</button>
-  </div>
-</header>
-
-<main>
-<!-- KANBAN -->
-<div id="page-kanban" class="page active">
-  <div class="toolbar">
-    <div>
-      <h2>Controle de Pedidos</h2>
-      <div id="kmeta" style="font-size:12.5px;color:var(--muted);margin-top:2px;"></div>
-    </div>
-    <div class="toolbar-right">
-      <input class="sinput" type="text" id="searchInput" placeholder="🔍 Buscar…" oninput="render()">
-      <label class="import-csv-label" title="Importar CSV exportado anteriormente">
-        📂 Importar CSV
-        <input type="file" id="csv-file-input" accept=".csv" onchange="importCSV(event)">
-      </label>
-    </div>
-  </div>
-  <div class="chips" id="chips"></div>
-  <div id="board-hint" style="display:none;font-size:11.5px;color:var(--muted);margin-bottom:8px;">← Deslize para ver todas as colunas →</div>
-  <div class="board">
-    <div class="col col-0" ondragover="onDragOver(event)" ondrop="onDrop(event,0)" ondragleave="onDragLeave(event)">
-      <div class="col-head"><div class="col-label"><div class="dot"></div>Solicitado</div><div class="col-cnt" id="cnt0">0</div></div>
-      <div class="col-body" id="col0"></div>
-    </div>
-    <div class="col col-1" ondragover="onDragOver(event)" ondrop="onDrop(event,1)" ondragleave="onDragLeave(event)">
-      <div class="col-head"><div class="col-label"><div class="dot"></div>Pedido / Enviado</div><div class="col-cnt" id="cnt1">0</div></div>
-      <div class="col-body" id="col1"></div>
-    </div>
-    <div class="col col-2" ondragover="onDragOver(event)" ondrop="onDrop(event,2)" ondragleave="onDragLeave(event)">
-      <div class="col-head"><div class="col-label"><div class="dot"></div>Chegou</div><div class="col-cnt" id="cnt2">0</div></div>
-      <div class="col-body" id="col2"></div>
-    </div>
-    <div class="col col-3" ondragover="onDragOver(event)" ondrop="onDrop(event,3)" ondragleave="onDragLeave(event)">
-      <div class="col-head"><div class="col-label"><div class="dot"></div>Entregue</div><div class="col-cnt" id="cnt3">0</div></div>
-      <div class="col-body" id="col3"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ARQUIVADOS -->
-
-<div id="page-arquivo" class="page">
-  <div class="toolbar">
-    <div>
-      <h2>🗂 Arquivados</h2>
-      <div id="arch-meta" style="font-size:12.5px;color:var(--muted);margin-top:2px;"></div>
-    </div>
-    <input class="sinput" type="text" id="archSearch" placeholder="🔍 Buscar…" oninput="renderArch()">
-  </div>
-  <div class="arch-wrap">
-    <table>
-      <thead><tr>
-        <th>Nome</th><th>Publicação</th><th>Qtd</th><th>Mês</th>
-        <th>Data Pedido</th><th>Última etapa</th><th>Obs</th><th></th>
-      </tr></thead>
-      <tbody id="arch-body"></tbody>
-    </table>
-    <div id="arch-empty" class="arch-empty" style="display:none;">
-      <div>🗂</div><p>Nenhum pedido arquivado ainda.<br>Use o botão 📦 Arquivar nos cards do kanban.</p>
-    </div>
-  </div>
-</div>
-
-<!-- ESTOQUE -->
-
-<div id="page-estoque" class="page">
-  <div style="margin-bottom:18px;">
-    <h2 style="font-size:19px;font-weight:800;letter-spacing:-.4px;margin-bottom:3px;">📦 Estoque da Congregação</h2>
-    <p style="font-size:13px;color:var(--muted);">Importe o relatório do JW Hub para visualizar o inventário atual</p>
-  </div>
-  <!-- Tabs de importação -->
-  <div style="display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;width:fit-content;margin-bottom:16px;">
-    <button class="tab active" id="est-tab-pdf" onclick="switchEstTab('pdf',this)" style="font-size:12.5px;">📄 Upload PDF</button>
-    <button class="tab" id="est-tab-txt" onclick="switchEstTab('txt',this)" style="font-size:12.5px;">📋 Colar Texto</button>
-  </div>
-
-  <!-- PDF drop zone -->
-
-  <div id="est-pane-pdf" class="import-box" style="padding:0;">
-    <div class="pdf-drop" id="pdfDrop"
-      ondragover="event.preventDefault();this.classList.add('dragover')"
-      ondragleave="this.classList.remove('dragover')"
-      ondrop="onPdfDrop(event)">
-      <input type="file" accept="application/pdf" onchange="onPdfFile(event)">
-      <div class="pdf-drop-icon">📄</div>
-      <h3>Arraste o PDF aqui ou clique para selecionar</h3>
-      <p>Relatório de inventário baixado do JW Hub (.pdf)</p>
-    </div>
-    <div id="pdf-status" class="pdf-status"></div>
-  </div>
-
-  <!-- Texto pane -->
-
-  <div id="est-pane-txt" class="import-box" style="display:none;">
-    <div style="font-size:28px;margin-bottom:6px;">📋</div>
-    <h3>Colar texto do JW Hub</h3>
-    <p>Abra o relatório no JW Hub, selecione tudo (Ctrl+A), copie (Ctrl+C) e cole abaixo</p>
-    <textarea id="importText" placeholder="Cole aqui o texto do relatório…&#10;&#10;Bíblias&#10;(nwt) Tradução do Novo Mundo  6&#10;…" style="width:100%;min-height:110px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--font);font-size:13px;color:var(--text);resize:vertical;outline:none;margin-top:12px;"></textarea>
-    <div style="margin-top:11px;display:flex;gap:8px;justify-content:center;">
-      <button class="btn btn-dark" onclick="importarEstoque()">📥 Importar</button>
-      <button class="btn btn-ghost" onclick="document.getElementById('importText').value=''">Limpar</button>
-    </div>
-  </div>
-  <div id="est-out" style="display:none;">
-    <div class="est-ref" id="est-ref"></div>
-    <div class="est-stats" id="est-stats"></div>
-    <div id="est-body"></div>
-  </div>
-</div>
-</main>
-
-<!-- MODAL PEDIDO -->
-
-<div class="overlay" id="mOverlay" onclick="if(event.target===this)closeModal()">
-  <div class="modal">
-    <h2 id="mTitle">Novo Pedido</h2>
-    <div class="fgrid">
-      <div class="fg"><label>Mês</label>
-        <select id="fMes"><option>Janeiro</option><option>Fevereiro</option><option>Março</option><option>Abril</option><option>Maio</option><option>Junho</option><option>Julho</option><option>Agosto</option><option>Setembro</option><option>Outubro</option><option>Novembro</option><option>Dezembro</option></select>
-      </div>
-      <div class="fg"><label>Data do Pedido</label><input type="date" id="fData"></div>
-      <div class="fg full"><label>Nome do Solicitante</label><input type="text" id="fNome" placeholder="Nome completo"></div>
-      <div class="fg full"><label>Publicação</label><input type="text" id="fPubli" placeholder="Nome da publicação"></div>
-      <div class="fg"><label>Quantidade</label><input type="number" id="fQtd" min="1" value="1"></div>
-      <div class="fg"><label>Etapa</label>
-        <select id="fEtapa"><option value="0">Solicitado</option><option value="1">Pedido / Enviado</option><option value="2">Chegou</option><option value="3">Entregue</option></select>
-      </div>
-      <div class="fg full"><label>Observações</label><textarea id="fObs" placeholder="Opcional…"></textarea></div>
-    </div>
-    <div class="mactions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-dark" onclick="saveRecord()">Salvar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL CONFIGURAÇÃO FIREBASE -->
-
-<div class="overlay" id="configOverlay" onclick="if(event.target===this)closeConfig()">
-  <div class="modal" style="max-width:560px;" onclick="event.stopPropagation()">
-    <h2>⚙️ Configuração do Firebase</h2>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">
-      Cole abaixo as credenciais do seu projeto Firebase. Elas ficam salvas <strong>apenas neste navegador</strong> e nunca são enviadas para nenhum servidor externo.
-    </p>
-
-```
-<div id="cfg-status" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;"></div>
-
-<div class="fgrid">
-  <div class="fg full"><label>API Key</label><input type="text" id="cfg-apiKey" placeholder="AIzaSy…" autocomplete="off"></div>
-  <div class="fg full"><label>Auth Domain</label><input type="text" id="cfg-authDomain" placeholder="meu-projeto.firebaseapp.com"></div>
-  <div class="fg full"><label>Project ID</label><input type="text" id="cfg-projectId" placeholder="meu-projeto"></div>
-  <div class="fg full"><label>Storage Bucket</label><input type="text" id="cfg-storageBucket" placeholder="meu-projeto.appspot.com"></div>
-  <div class="fg"><label>Messaging Sender ID</label><input type="text" id="cfg-messagingSenderId" placeholder="123456789"></div>
-  <div class="fg"><label>App ID</label><input type="text" id="cfg-appId" placeholder="1:123…:web:abc…"></div>
-</div>
-
-<details style="margin-top:16px;">
-  <summary style="font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;padding:6px 0;">
-    📖 Como obter essas credenciais?
-  </summary>
-  <ol style="padding-left:18px;margin-top:10px;">
-    <li class="fb-li">Acesse <strong>console.firebase.google.com</strong> e crie um projeto gratuito</li>
-    <li class="fb-li">Clique em <strong>"Adicionar app" → Web</strong> e registre o app</li>
-    <li class="fb-li">Copie cada valor do objeto <strong>firebaseConfig</strong> e cole nos campos acima</li>
-    <li class="fb-li">No console Firebase: <strong>Firestore Database → Criar banco → Modo de teste</strong></li>
-    <li class="fb-li">Hospede no <strong>GitHub Pages</strong> e compartilhe o link com seu parceiro ✅</li>
-  </ol>
-  <div class="fb-code" style="margin-top:10px;">
-    // Regras do Firestore (cole no console, aba "Regras"):<br>
-    rules_version = '2';<br>
-    service cloud.firestore {<br>
-    &nbsp;&nbsp;match /databases/{db}/documents/{doc=**} {<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if true;<br>
-    &nbsp;&nbsp;}<br>
-    }
-  </div>
-</details>
-
-<div id="migrate-section" style="display:none;margin-top:16px;padding:14px;background:#EFF6FF;border-radius:10px;border:1px solid #BFDBFE;">
-  <div style="font-size:13px;font-weight:700;color:#1E40AF;margin-bottom:8px;">📦 Firebase vazio detectado</div>
-  <div style="font-size:12.5px;color:#1E40AF;margin-bottom:10px;">Você tem <strong id="migrate-count">0</strong> pedidos salvos localmente. Deseja enviá-los para o Firebase agora?</div>
-  <button onclick="runMigration()" style="padding:7px 16px;border-radius:7px;border:none;background:#1D4ED8;color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;width:100%;">⬆ Migrar pedidos para o Firebase</button>
-</div>
-<div class="mactions" style="margin-top:16px;">
-  <button class="btn btn-ghost" onclick="clearConfig()">🗑 Remover</button>
-  <button class="btn btn-ghost" onclick="closeConfig()">Cancelar</button>
-  <button class="btn btn-dark" onclick="saveConfig()">💾 Salvar e Conectar</button>
-</div>
-```
-
-  </div>
-</div>
-
-<script>
-// ─── SEED DATA (89 registros da planilha) ─────────────────────────────────────
-const SEED=[{"id":"init_0","nome":"Ramon Souza","publicacao":"Achegue se a Jeová","qtd":1,"mes":"Março","data":"2025-03-01","etapa":3,"obs":""},{"id":"init_1","nome":"Karolyne","publicacao":"Biblia Media","qtd":1,"mes":"Março","data":"2025-03-01","etapa":3,"obs":""},{"id":"init_2","nome":"Sheila","publicacao":"Examine 2025","qtd":1,"mes":"Março","data":"2025-03-01","etapa":3,"obs":""},{"id":"init_3","nome":"Antônio","publicacao":"Examine 2025","qtd":1,"mes":"Março","data":"2025-03-01","etapa":3,"obs":""},{"id":"init_4","nome":"Chiquinha","publicacao":"Examine 2025","qtd":1,"mes":"Março","data":"2025-03-02","etapa":3,"obs":""},{"id":"init_5","nome":"Silvana Dias","publicacao":"Examine 2025","qtd":3,"mes":"Março","data":"2025-03-03","etapa":3,"obs":""},{"id":"init_6","nome":"Zé Nascimento","publicacao":"Examine 2025","qtd":1,"mes":"Março","data":"2025-03-04","etapa":3,"obs":""},{"id":"init_7","nome":"Maria Celia","publicacao":"Examine 2025","qtd":1,"mes":"Março","data":"2025-03-05","etapa":3,"obs":""},{"id":"init_8","nome":"Zumira","publicacao":"Examine 2025","qtd":4,"mes":"Março","data":"2025-03-06","etapa":3,"obs":""},{"id":"init_9","nome":"Ramon Souza","publicacao":"Examine 2025","qtd":1,"mes":"Março","data":"2025-03-07","etapa":3,"obs":""},{"id":"init_10","nome":"Karina Costa","publicacao":"Examine 2025","qtd":3,"mes":"Março","data":"2025-03-08","etapa":3,"obs":""},{"id":"init_11","nome":"Marilene","publicacao":"Historias Biblicas","qtd":1,"mes":"Julho","data":"2025-07-16","etapa":3,"obs":""},{"id":"init_12","nome":"Gabriel (Estudante Karolyne)","publicacao":"Historias Biblicas","qtd":1,"mes":"Julho","data":"2025-07-16","etapa":3,"obs":""},{"id":"init_13","nome":"Damião","publicacao":"Historias Biblicas","qtd":1,"mes":"Julho","data":"2025-07-16","etapa":3,"obs":""},{"id":"init_14","nome":"Karolyne","publicacao":"Historias Biblicas","qtd":1,"mes":"Julho","data":"2025-07-16","etapa":3,"obs":""},{"id":"init_15","nome":"Deusmira","publicacao":"Historias Biblicas","qtd":1,"mes":"Julho","data":"2025-07-23","etapa":3,"obs":""},{"id":"init_16","nome":"José Machado","publicacao":"Historias Biblicas","qtd":3,"mes":"Julho","data":"2025-07-23","etapa":3,"obs":""},{"id":"init_17","nome":"Rita Gerlandia","publicacao":"Historias Biblicas","qtd":3,"mes":"Julho","data":"2025-07-23","etapa":3,"obs":""},{"id":"init_18","nome":"Cassia","publicacao":"Historias Biblicas","qtd":1,"mes":"Agosto","data":"2025-08-27","etapa":3,"obs":""},{"id":"init_19","nome":"Carminha","publicacao":"Historias Biblicas","qtd":1,"mes":"Abril","data":"2025-04-01","etapa":3,"obs":""},{"id":"init_20","nome":"Lucas Alves","publicacao":"Biblia Grande","qtd":1,"mes":"Maio","data":"2025-05-01","etapa":3,"obs":""},{"id":"init_21","nome":"Maria Maia","publicacao":"Biblia Media","qtd":1,"mes":"Maio","data":"2025-05-02","etapa":3,"obs":""},{"id":"init_22","nome":"Ana Flavia","publicacao":"Ame as Pessoas","qtd":1,"mes":"Maio","data":"2025-05-03","etapa":3,"obs":""},{"id":"init_23","nome":"Selma","publicacao":"Ame as Pessoas","qtd":1,"mes":"Maio","data":"2025-05-04","etapa":3,"obs":""},{"id":"init_24","nome":"Odilon","publicacao":"Biblia Grande","qtd":1,"mes":"Maio","data":"2025-05-05","etapa":2,"obs":""},{"id":"init_25","nome":"Adilson","publicacao":"Biblia Grande","qtd":1,"mes":"Maio","data":"2025-05-06","etapa":3,"obs":""},{"id":"init_26","nome":"Eraldo","publicacao":"Examine 2026","qtd":1,"mes":"Maio","data":"2025-05-07","etapa":3,"obs":""},{"id":"init_27","nome":"Sheila","publicacao":"Examine 2026","qtd":1,"mes":"Maio","data":"2025-05-07","etapa":3,"obs":""},{"id":"init_28","nome":"Darcí","publicacao":"Examine 2026","qtd":1,"mes":"Maio","data":"2025-05-07","etapa":3,"obs":""},{"id":"init_29","nome":"Chiquinha","publicacao":"Examine 2026","qtd":1,"mes":"Maio","data":"2025-05-07","etapa":3,"obs":""},{"id":"init_30","nome":"Silvana Dias","publicacao":"Examine 2026","qtd":3,"mes":"Maio","data":"2025-05-07","etapa":3,"obs":""},{"id":"init_31","nome":"Damião","publicacao":"Examine Letras Grandes 2026","qtd":1,"mes":"Maio","data":"2025-05-07","etapa":3,"obs":""},{"id":"init_32","nome":"Maria Celia","publicacao":"Examine 2026","qtd":1,"mes":"Maio","data":"2025-05-07","etapa":2,"obs":""},{"id":"init_33","nome":"Zumira","publicacao":"Examine 2026","qtd":4,"mes":"Maio","data":"2025-05-07","etapa":3,"obs":""},{"id":"init_34","nome":"Viviane","publicacao":"Examine Letras Grandes 2026","qtd":1,"mes":"Maio","data":"2025-05-07","etapa":3,"obs":""},{"id":"init_35","nome":"Antonio","publicacao":"Examine 2026","qtd":1,"mes":"Maio","data":"2025-05-07","etapa":2,"obs":""},{"id":"init_36","nome":"Rosa Costa","publicacao":"Examine 2 Letras Grandes 2 normais 2026","qtd":4,"mes":"Maio","data":"2025-05-07","etapa":3,"obs":""},{"id":"init_37","nome":"Ramon Souza","publicacao":"Examine 2026","qtd":1,"mes":"Maio","data":"2025-05-07","etapa":3,"obs":""},{"id":"init_38","nome":"José Nascimento","publicacao":"Examine 2026","qtd":1,"mes":"Maio","data":"2025-05-07","etapa":3,"obs":""},{"id":"init_39","nome":"Aparecida","publicacao":"Ame as Pessoas","qtd":1,"mes":"Junho","data":"2025-06-01","etapa":3,"obs":""},{"id":"init_40","nome":"Graziela","publicacao":"Historias Biblicas","qtd":3,"mes":"Abril","data":"2025-04-02","etapa":3,"obs":""},{"id":"init_41","nome":"Antônio","publicacao":"Historias Biblicas","qtd":1,"mes":"Abril","data":"2025-04-03","etapa":3,"obs":""},{"id":"init_42","nome":"Silvana","publicacao":"Historias Biblicas","qtd":1,"mes":"Abril","data":"2025-04-04","etapa":3,"obs":""},{"id":"init_43","nome":"Evaneide","publicacao":"Apostila e A Sentinela recorrente","qtd":1,"mes":"Julho","data":"2025-07-16","etapa":3,"obs":""},{"id":"init_44","nome":"Maria dos Santos","publicacao":"Apostila e A Sentinela recorrente (LG)","qtd":1,"mes":"Julho","data":"2025-07-16","etapa":3,"obs":""},{"id":"init_45","nome":"Rones","publicacao":"Historias Biblicas","qtd":1,"mes":"Abril","data":"2025-04-05","etapa":3,"obs":""},{"id":"init_46","nome":"José Nascimento","publicacao":"Biblia Grande","qtd":1,"mes":"Julho","data":"2025-07-16","etapa":3,"obs":""},{"id":"init_47","nome":"Chiquinha","publicacao":"Examine as Escrituras - Letras Grandes","qtd":1,"mes":"Julho","data":"2025-07-19","etapa":3,"obs":""},{"id":"init_48","nome":"Jordânia","publicacao":"Historias Biblicas","qtd":1,"mes":"Abril","data":"2025-04-06","etapa":3,"obs":""},{"id":"init_49","nome":"Vanda","publicacao":"Historias Biblicas","qtd":1,"mes":"Abril","data":"2025-04-07","etapa":3,"obs":""},{"id":"init_50","nome":"Cássia","publicacao":"Historias Biblicas","qtd":1,"mes":"Abril","data":"2025-04-08","etapa":3,"obs":""},{"id":"init_51","nome":"Ramon Souza","publicacao":"Perspicaz vol 1.3","qtd":1,"mes":"Agosto","data":"2025-08-06","etapa":2,"obs":""},{"id":"init_52","nome":"Carminha","publicacao":"Minhas primeiras lições da Biblia","qtd":2,"mes":"Agosto","data":"2025-08-06","etapa":3,"obs":""},{"id":"init_53","nome":"Estudantes Regiane","publicacao":"A sentinela recorrente","qtd":2,"mes":"Agosto","data":"2025-08-18","etapa":2,"obs":""},{"id":"init_54","nome":"Congregação","publicacao":"A vida teve um criador","qtd":20,"mes":"Agosto","data":"2025-08-18","etapa":3,"obs":""},{"id":"init_55","nome":"Márcia","publicacao":"Bíblia pequena","qtd":1,"mes":"Agosto","data":"2025-08-18","etapa":3,"obs":""},{"id":"init_56","nome":"Angélica","publicacao":"Historias Biblicas","qtd":4,"mes":"Abril","data":"2025-04-09","etapa":3,"obs":""},{"id":"init_57","nome":"Congregação","publicacao":"Quem controla o mundo?","qtd":1,"mes":"Setembro","data":"2025-09-03","etapa":3,"obs":"720"},{"id":"init_58","nome":"Congregação","publicacao":"O que é o reino de Deus?","qtd":1,"mes":"Setembro","data":"2025-09-03","etapa":2,"obs":"720"},{"id":"init_59","nome":"José Nascimento","publicacao":"Biblia Grande","qtd":2,"mes":"Setembro","data":"2025-09-03","etapa":3,"obs":""},{"id":"init_60","nome":"Damião Maia","publicacao":"Pastoreie","qtd":1,"mes":"Setembro","data":"2025-09-18","etapa":2,"obs":""},{"id":"init_61","nome":"Congregação","publicacao":"Biblia Media","qtd":3,"mes":"Outubro","data":"2025-10-29","etapa":3,"obs":""},{"id":"init_62","nome":"Marcos Costa","publicacao":"Ande Corajosamente","qtd":2,"mes":"Outubro","data":"2025-10-15","etapa":2,"obs":""},{"id":"init_63","nome":"Jordânia","publicacao":"Ande Corajosamente","qtd":1,"mes":"Outubro","data":"2025-10-15","etapa":2,"obs":""},{"id":"init_64","nome":"Graziela","publicacao":"Ande Corajosamente","qtd":3,"mes":"Outubro","data":"2025-10-15","etapa":2,"obs":""},{"id":"init_65","nome":"Carminha","publicacao":"Ande Corajosamente","qtd":1,"mes":"Outubro","data":"2025-10-15","etapa":2,"obs":""},{"id":"init_66","nome":"Alexandre","publicacao":"Ande Corajosamente","qtd":4,"mes":"Outubro","data":"2025-10-15","etapa":2,"obs":""},{"id":"init_67","nome":"Lucas Alves","publicacao":"Ande Corajosamente","qtd":2,"mes":"Outubro","data":"2025-10-16","etapa":2,"obs":""},{"id":"init_68","nome":"Helenita","publicacao":"Ande Corajosamente","qtd":1,"mes":"Outubro","data":"2025-10-22","etapa":2,"obs":""},{"id":"init_69","nome":"Maria Maia","publicacao":"Ande Corajosamente Letras Grandes","qtd":2,"mes":"Outubro","data":"2025-10-22","etapa":2,"obs":""},{"id":"init_70","nome":"Lourdes","publicacao":"Ande Corajosamente Letras Grandes","qtd":1,"mes":"Outubro","data":"2025-10-27","etapa":2,"obs":""},{"id":"init_71","nome":"Lourdes","publicacao":"Biblia Media","qtd":1,"mes":"Outubro","data":"2025-10-29","etapa":3,"obs":""},{"id":"init_72","nome":"Evaneide","publicacao":"Ande Corajosamente Letras Grandes","qtd":2,"mes":"Outubro","data":"2025-10-29","etapa":2,"obs":""},{"id":"init_73","nome":"Congregação","publicacao":"Ande Corajosamente","qtd":3,"mes":"Outubro","data":"2025-10-30","etapa":2,"obs":""},{"id":"init_74","nome":"Congregação","publicacao":"Seja Feliz para Sempre - Livro","qtd":20,"mes":"Outubro","data":"2025-10-30","etapa":3,"obs":""},{"id":"init_75","nome":"Rafael","publicacao":"Biblia Media","qtd":1,"mes":"Novembro","data":"2025-11-10","etapa":3,"obs":""},{"id":"init_76","nome":"Jessica Maia","publicacao":"Ande Corajosamente","qtd":2,"mes":"Novembro","data":"2025-11-06","etapa":2,"obs":""},{"id":"init_77","nome":"Jordania","publicacao":"Biblia Media","qtd":1,"mes":"Novembro","data":"2025-11-06","etapa":3,"obs":""},{"id":"init_78","nome":"Graziela","publicacao":"Biblia Media","qtd":2,"mes":"Janeiro","data":"2026-01-01","etapa":3,"obs":""},{"id":"init_79","nome":"Carlos Alves","publicacao":"Historias Biblicas","qtd":1,"mes":"Janeiro","data":"2026-01-01","etapa":2,"obs":""},{"id":"init_80","nome":"Congregação","publicacao":"Seja Feliz para Sempre - Campanha","qtd":1,"mes":"Janeiro","data":"2026-01-03","etapa":2,"obs":"350"},{"id":"init_81","nome":"Congregação","publicacao":"Biblia Media","qtd":2,"mes":"Janeiro","data":"2026-01-03","etapa":2,"obs":""},{"id":"init_82","nome":"Congregação","publicacao":"Seja Feliz para Sempre - Livro","qtd":30,"mes":"Janeiro","data":"2026-01-29","etapa":2,"obs":""},{"id":"init_83","nome":"Maria Eduarda","publicacao":"Biblia Media","qtd":2,"mes":"Janeiro","data":"2026-01-24","etapa":2,"obs":""},{"id":"init_84","nome":"Congregação","publicacao":"Cartões","qtd":1,"mes":"Janeiro","data":"2026-01-29","etapa":2,"obs":"500"},{"id":"init_85","nome":"Marilene","publicacao":"Biblia Grande","qtd":1,"mes":"Fevereiro","data":"2026-02-06","etapa":3,"obs":""},{"id":"init_86","nome":"Marilene","publicacao":"Ande Corajosamente","qtd":1,"mes":"Fevereiro","data":"2026-02-06","etapa":2,"obs":""},{"id":"init_87","nome":"Ramon Oliveira","publicacao":"Bíblia pequena","qtd":1,"mes":"Fevereiro","data":"2026-02-04","etapa":2,"obs":""},{"id":"init_88","nome":"Henrique - Carrinho","publicacao":"Volte para Jeová","qtd":4,"mes":"Fevereiro","data":"2026-02-09","etapa":2,"obs":""}];
-
-const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const ETAPAS=['Solicitado','Pedido / Enviado','Chegou','Entregue'];
-
-let records=[],archived=[],activeMes='Todos',editingId=null,dragId=null,useFirebase=false,db,FB;
-
-// Firebase
-window.addEventListener('fb-ready',()=>{
-  useFirebase=true;db=window._db;FB=window._FB;
-  const banner=document.getElementById('banner');
-  banner.style.background='#F0FDF4';
-  banner.style.borderColor='#22C55E';
-  banner.style.color='#15803D';
-  document.getElementById('banner-msg').innerHTML='🟢 <strong>Firebase conectado</strong> — sincronizando em tempo real.';
-  document.getElementById('banner-link').textContent='⚙️ Alterar configuração';
-
-;
+  FB.onSnapshot(FB.query(FB.collection(db,'arquivados'),FB.orderBy('arqEm','desc')),snap=>{
+    archived=snap.docs.map(d=>({id:d.id,...d.data()}));renderArch();
+  });
+});
+window.addEventListener('fb-error',()=>{
+  console.error('Firebase error:',window._fbError);
+  // Show error in config modal
+  setTimeout(()=>{
+    openConfig();
+    showCfgStatus('error','❌ Erro ao conectar: '+window._fbError+' — verifique as credenciais.');
+  },300);
+  // Fall back to local
+  try{records=JSON.parse(localStorage.getItem('bj_v2')||'null')||SEED.map(r=>({...r}));}catch{records=SEED.map(r=>({...r}));}
+  try{archived=JSON.parse(localStorage.getItem('bj_arch')||'[]');}catch{archived=[];}
+  save();render();renderArch();
+});
 window.addEventListener('fb-demo',()=>{
   try{
     const saved=JSON.parse(localStorage.getItem('bj_v2')||'null');
@@ -1197,7 +640,7 @@ async function onDrop(e,etapa){
   const id=dragId||e.dataTransfer.getData('text/plain');
   dragId=null;
   if(!id)return;
-  if(useFirebase)await db.collection('pedidos').doc(id).update({etapa});
+  if(useFirebase)await FB.updateDoc(FB.doc(db,'pedidos',id),{etapa});
   else{const r=records.find(x=>x.id===id);if(r)r.etapa=etapa;save();render();}
 }
 
@@ -1206,13 +649,13 @@ async function archiveCard(id){
   const r=records.find(x=>x.id===id);if(!r)return;
   if(!confirm(`Arquivar pedido de "${r.nome}"?`))return;
   const item={...r,arqEm:Date.now()};
-  if(useFirebase){await db.collection('arquivados').add(item);await db.collection('pedidos').doc(id).delete();}
+  if(useFirebase){await FB.addDoc(FB.collection(db,'arquivados'),item);await FB.deleteDoc(FB.doc(db,'pedidos',id));}
   else{archived.unshift(item);records=records.filter(x=>x.id!==id);save();render();renderArch();}
 }
 async function restoreCard(id){
   const r=archived.find(x=>x.id===id);if(!r)return;
   const{arqEm,...rest}=r;
-  if(useFirebase){await db.collection('pedidos').add({...rest,criadoEm:rest.criadoEm||Date.now()});await db.collection('arquivados').doc(id).delete();}
+  if(useFirebase){await FB.addDoc(FB.collection(db,'pedidos'),{...rest,criadoEm:rest.criadoEm||Date.now()});await FB.deleteDoc(FB.doc(db,'arquivados',id));}
   else{records.push({...rest});archived=archived.filter(x=>x.id!==id);save();render();renderArch();}
 }
 
@@ -1266,8 +709,8 @@ async function saveRecord(){
     qtd:+document.getElementById('fQtd').value||1,etapa:+document.getElementById('fEtapa').value,
     obs:document.getElementById('fObs').value.trim(),criadoEm:editingId?(records.find(x=>x.id===editingId)?.criadoEm||Date.now()):Date.now()};
   if(useFirebase){
-    if(editingId)await db.collection('pedidos').doc(editingId).update(d);
-    else await db.collection('pedidos').add(d);
+    if(editingId)await FB.updateDoc(FB.doc(db,'pedidos',editingId),d);
+    else await FB.addDoc(FB.collection(db,'pedidos'),d);
   }else{
     if(editingId){const i=records.findIndex(x=>x.id===editingId);records[i]={...records[i],...d};}
     else records.unshift({id:nid(),...d});
@@ -1279,7 +722,7 @@ async function saveRecord(){
 async function delCard(id){
   const r=records.find(x=>x.id===id);
   if(!confirm(`Excluir pedido de "${r?.nome}"?`))return;
-  if(useFirebase)await db.collection('pedidos').doc(id).delete();
+  if(useFirebase)await FB.deleteDoc(FB.doc(db,'pedidos',id));
   else{records=records.filter(x=>x.id!==id);save();render();}
 }
 
@@ -1417,14 +860,14 @@ async function runMigration(){
     let count=0;
     for(const r of _migrationData){
       const {id,...data}=r;
-      await db.collection('pedidos').add({...data,criadoEm:data.criadoEm||Date.now()+count});
+      await FB.addDoc(FB.collection(db,'pedidos'),{...data,criadoEm:data.criadoEm||Date.now()+count});
       count++;
     }
     // Also migrate archived
     const localArch=JSON.parse(localStorage.getItem('bj_arch')||'[]');
     for(const r of localArch){
       const {id,...data}=r;
-      await db.collection('arquivados').add({...data});
+      await FB.addDoc(FB.collection(db,'arquivados'),{...data});
     }
     dismissMigration();
     showImportResult(`✅ ${count} pedidos migrados para o Firebase com sucesso!`,'ok');
@@ -1513,9 +956,10 @@ function importCSV(event) {
     );
 
     if (useFirebase) {
+      const { addDoc, collection: col } = FB;
       for (const r of newRecords) {
         const { id, ...data } = r;
-        await db.collection('pedidos').add(data);
+        await FB.addDoc(FB.collection(db, 'pedidos'), data);
       }
     } else {
       if (action) {
