@@ -360,6 +360,8 @@ const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agos
 const ETAPAS=['Solicitado','Pedido / Enviado','Chegou','Entregue'];
 
 let records=[],archived=[],activeMes='Todos',editingId=null,dragId=null,useFirebase=false,db,FB;
+// expose for touch handler
+function _exposeGlobals(){window._app={records,archived,useFirebase,db,FB,save,render};}
 
 // ── FIREBASE INIT — usando import() dinâmico para evitar race condition no Safari ──
 async function initFirebase() {
@@ -444,6 +446,7 @@ function nid(){return'r_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);}
 function fmtDate(d){if(!d||d==='-')return'—';try{const dt=new Date(d+'T00:00:00');return isNaN(dt)?d:dt.toLocaleDateString('pt-BR');}catch{return d;}}
 
 function render(){
+  _exposeGlobals();
   const q=(document.getElementById('searchInput')?.value||'').toLowerCase();
   const meses=[...new Set(records.map(r=>r.mes))].sort((a,b)=>MESES.indexOf(a)-MESES.indexOf(b));
   document.getElementById('chips').innerHTML=
@@ -772,6 +775,115 @@ function parseEstoqueText(text){
 
 function updateHint(){const hint=document.getElementById('board-hint');if(hint)hint.style.display=window.innerWidth<=600?'block':'none';}
 updateHint();window.addEventListener('resize',updateHint);
+
+// ── TOUCH DRAG & DROP (iOS/Android) ──────────────────────────────────────────
+(function(){
+  let dragging = null, clone = null, startX = 0, startY = 0, cardId = null;
+
+  function getColAtPoint(x, y) {
+    // Temporarily hide clone so elementFromPoint works
+    if (clone) clone.style.display = 'none';
+    const el = document.elementFromPoint(x, y);
+    if (clone) clone.style.display = '';
+    if (!el) return null;
+    let node = el;
+    while (node && !node.classList?.contains('col')) node = node.parentElement;
+    return node;
+  }
+
+  function createClone(card) {
+    const rect = card.getBoundingClientRect();
+    clone = card.cloneNode(true);
+    clone.style.cssText = `
+      position:fixed;z-index:9999;pointer-events:none;
+      width:${rect.width}px;left:${rect.left}px;top:${rect.top}px;
+      opacity:0.85;transform:rotate(2deg) scale(1.04);
+      box-shadow:0 12px 32px rgba(0,0,0,.22);
+      border-radius:10px;background:#fff;border:1px solid #ccc;
+      padding:11px 13px;transition:none;
+    `;
+    document.body.appendChild(clone);
+    return rect;
+  }
+
+  document.addEventListener('touchstart', function(e) {
+    const card = e.target.closest('.card');
+    if (!card) return;
+    // Don't start drag if tapping a button
+    if (e.target.closest('button')) return;
+
+    dragging = card;
+    cardId = card.id.replace('card_', '');
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+
+    // Delay clone creation slightly to distinguish tap from drag
+    dragging._dragTimer = setTimeout(() => {
+      const rect = createClone(card);
+      dragging._offsetX = touch.clientX - rect.left;
+      dragging._offsetY = touch.clientY - rect.top;
+      dragging.style.opacity = '0.3';
+    }, 120);
+  }, {passive: true});
+
+  document.addEventListener('touchmove', function(e) {
+    if (!dragging) return;
+    if (!clone) return; // not yet confirmed as drag
+    e.preventDefault();
+
+    const touch = e.touches[0];
+    clone.style.left = (touch.clientX - dragging._offsetX) + 'px';
+    clone.style.top  = (touch.clientY - dragging._offsetY) + 'px';
+
+    // Highlight target column
+    document.querySelectorAll('.col').forEach(c => c.classList.remove('drag-over'));
+    const col = getColAtPoint(touch.clientX, touch.clientY);
+    if (col) col.classList.add('drag-over');
+  }, {passive: false});
+
+  document.addEventListener('touchend', async function(e) {
+    if (!dragging) return;
+    clearTimeout(dragging._dragTimer);
+
+    if (!clone) {
+      // Was just a tap, not a drag — reset
+      dragging = null; cardId = null;
+      return;
+    }
+
+    const touch = e.changedTouches[0];
+    const col = getColAtPoint(touch.clientX, touch.clientY);
+
+    document.querySelectorAll('.col').forEach(c => c.classList.remove('drag-over'));
+    clone.remove(); clone = null;
+    dragging.style.opacity = '';
+    const savedId = cardId;
+    dragging = null; cardId = null;
+
+    if (!col) return;
+    // Get etapa from col class: col-0, col-1, col-2, col-3
+    const match = col.className.match(/col-(\d)/);
+    if (!match) return;
+    const etapa = parseInt(match[1]);
+
+    const app = window._app||{};
+    if (app.useFirebase && app.FB && app.db) {
+      await app.FB.updateDoc(app.FB.doc(app.db, 'pedidos', savedId), {etapa});
+    } else {
+      const r = app.records?.find(x => x.id === savedId);
+      if (r) { r.etapa = etapa; app.save?.(); app.render?.(); }
+    }
+  }, {passive: true});
+
+  document.addEventListener('touchcancel', function() {
+    if (dragging) { clearTimeout(dragging._dragTimer); dragging.style.opacity = ''; dragging = null; }
+    if (clone) { clone.remove(); clone = null; }
+    cardId = null;
+    document.querySelectorAll('.col').forEach(c => c.classList.remove('drag-over'));
+  }, {passive: true});
+})();
+
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeConfig();}if(e.key==='n'&&!e.target.matches('input,textarea,select'))openModal();});
 </script>
 
