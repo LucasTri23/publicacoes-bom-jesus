@@ -11,8 +11,15 @@
   import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // Carrega config salva pelo usuário no app
-let cfg = {};
-try { cfg = JSON.parse(localStorage.getItem(‘bj_fbconfig’) || ‘{}’); } catch {}
+let cfg = {
+  apiKey: "AIzaSyB2oA_aL4XZEYgBtXNi2tTnLNEvmKbUOuE",
+  authDomain: "publicacao-85a10.firebaseapp.com",
+  projectId: "publicacao-85a10",
+  storageBucket: "publicacao-85a10.firebasestorage.app",
+  messagingSenderId: "31833545254",
+  appId: "1:31833545254:web:7b00efe00182"
+};
+
 
 const hasConfig = cfg.apiKey && cfg.projectId;
 
